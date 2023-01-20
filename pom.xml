@@ -1,24 +1,60 @@
-<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.hubspot</groupId>
+    <artifactId>basepom</artifactId>
+    <version>25.7</version>
+  </parent>
+
   <groupId>com.hadoop.gplcompression</groupId>
   <artifactId>hadoop-lzo</artifactId>
-  <version>0.4.21-SNAPSHOT</version>
+  <version>0.4.21-hubspot-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>hadoop-lzo</name>
-  <description>Hadoop-lzo library (Twitter)</description>
-  <url>https://github.com/twitter/hadoop-lzo</url>
+
+  <properties>
+    <hadoop.version>3.3.1</hadoop.version>
+    <basepom.check.skip-pom-lint>true</basepom.check.skip-pom-lint>
+    <basepom.check.skip-dependency-versions-check>true</basepom.check.skip-dependency-versions-check>
+    <basepom.check.skip-checkstyle>true</basepom.check.skip-checkstyle>
+    <basepom.check.skip-duplicate-finder>true</basepom.check.skip-duplicate-finder>
+    <basepom.check.skip-findbugs>true</basepom.check.skip-findbugs>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-mapreduce-client-core</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>commons-logging</groupId>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-mapreduce-client-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <artifactId>commons-logging</artifactId>
-      <version>1.1.1</version>
+      <groupId>commons-logging</groupId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -29,18 +65,6 @@
       <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
-
-  <scm>
-    <url>scm:git:git@github.com:twitter/hadoop-lzo.git</url>
-    <connection>scm:git:git@github.com:twitter/hadoop-lzo.git</connection>
-    <developerConnection>scm:git:git@github.com:twitter/hadoop-lzo.git</developerConnection>
-  </scm>
-  <issueManagement>
-    <url>https://github.com/twitter/hadoop-lzo/issues</url>
-  </issueManagement>
-  <ciManagement>
-    <url>https://travis-ci.org/twitter/hadoop-lzo</url>
-  </ciManagement>
 
   <developers>
     <developer>
@@ -60,125 +84,20 @@
     </developer>
   </developers>
 
-  <distributionManagement>
-    <snapshotRepository>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype OSS</name>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>sonatype-nexus-staging</id>
-      <name>Nexus Release Repository</name>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>sonatype-nexus-snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-     </repository>
-  </repositories>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <hadoop.current.version>2.6.4</hadoop.current.version>
-    <hadoop.old.version>1.0.4</hadoop.old.version>
-  </properties>
-
-  <profiles>
-    <profile>
-      <id>default-profile</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.current.version}</version>
-          <scope>provided</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-mapreduce-client-core</artifactId>
-          <version>${hadoop.current.version}</version>
-          <scope>provided</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>hadoop-old</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-core</artifactId>
-          <version>${hadoop.old.version}</version>
-          <scope>provided</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-test</artifactId>
-          <version>${hadoop.old.version}</version>
-          <scope>provided</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
-
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.5.1</version>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-          <showDeprecation>true</showDeprecation>
-          <showWarnings>true</showWarnings>
-        </configuration>
-      </plugin>
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
           <execution>
-            <id>check-platform</id>
+            <id>set-props</id>
             <phase>initialize</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
               <exportAntProperties>true</exportAntProperties>
-              <target name="check-platform">
-                <condition property="windows">
-                  <os family="windows" />
-                </condition>
-                <condition property="non-windows">
-                  <not>
-                    <isset property="windows" />
-                  </not>
-                </condition>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>set-props-non-win</id>
-            <phase>initialize</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <exportAntProperties>true</exportAntProperties>
-              <target name="set-props-non-win" description="sets key properties that are used throughout" if="non-windows">
+              <target name="set-props" description="sets key properties that are used throughout">
                 <exec executable="sed" inputstring="${os.name}" outputproperty="nonspace.os">
                   <arg value="s/ /_/g"/>
                 </exec>
@@ -192,31 +111,13 @@
             </configuration>
           </execution>
           <execution>
-            <id>set-props-win</id>
-            <phase>initialize</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <exportAntProperties>true</exportAntProperties>
-              <target name="set-props-win" description="sets key properties that are used throughout" if="windows">
-                <property name="build.platform" value="${env.OS}-${env.PLATFORM}"/>
-                <property name="build.native" value="${project.build.directory}/native/${build.platform}"/>
-                <property name="build.native.target" value="${project.build.outputDirectory}/native/${build.platform}"/>
-                <property name="native.src.dir" value="${basedir}/src/main/native"/>
-                <property name="test.build.dir" value="${project.build.directory}/test-classes"/>
-                <property name="test.log.dir" value="${test.build.dir}/logs"/>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-info-non-win</id>
+            <id>build-info</id>
             <phase>compile</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
-              <target name="build-info-non-win" description="generates hadoop-lzo-build.properties" if="non-windows">
+              <target name="build-info" description="generates hadoop-lzo-build.properties">
                 <tstamp>
                   <format property="build_time" pattern="MM/dd/yyyy hh:mm aa" timezone="GMT"/>
                 </tstamp>
@@ -239,39 +140,14 @@
             </configuration>
           </execution>
           <execution>
-            <id>build-info-win</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target name="build-info-win" description="generates hadoop-lzo-build.properties" if="windows">
-                <tstamp>
-                  <format property="build_time" pattern="MM/dd/yyyy hh:mm aa" timezone="GMT"/>
-                </tstamp>
-                <exec executable="sh" outputproperty="build_revision">
-                  <arg value="scripts/get_build_revision.sh" />
-                </exec>
-                <propertyfile file="${project.build.outputDirectory}/hadoop-lzo-build.properties"
-                    comment="This file is automatically generated - DO NOT EDIT">
-                  <entry key="build_time" value="${build_time}"/>
-                  <entry key="build_revision" value="${build_revision}"/>
-                  <entry key="build_author" value="${env.USERNAME}"/>
-                  <entry key="build_version" value="${project.version}"/>
-                  <entry key="build_os" value="${env.OS}"/>
-                </propertyfile>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>check-native-uptodate-non-win</id>
+            <id>check-native-uptodate</id>
             <phase>compile</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
               <exportAntProperties>true</exportAntProperties>
-              <target name="check-native-uptodate-non-win" description="checks if native binaries should be rebuilt" if="non-windows">
+              <target name="check-native-uptodate" description="checks if native binaries should be rebuilt">
                 <uptodate property="native.uptodate" targetfile="${build.native.target}/lib/libgplcompression.la">
                   <srcfiles dir="${native.src.dir}" includes="**/*"/>
                 </uptodate>
@@ -279,50 +155,35 @@
             </configuration>
           </execution>
           <execution>
-            <id>check-native-uptodate-win</id>
+            <id>build-native</id>
             <phase>compile</phase>
             <goals>
               <goal>run</goal>
             </goals>
             <configuration>
-              <exportAntProperties>true</exportAntProperties>
-              <target name="check-native-uptodate-win" description="checks if native binaries should be rebuilt" if="windows">
-                <uptodate property="native.uptodate" targetfile="${build.native.target}/lib/gplcompression.dll">
-                  <srcfiles dir="${native.src.dir}" includes="**/*"/>
-                </uptodate>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-native-non-win</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target name="build-native-non-win" if="non-windows" unless="native.uptodate" description="compiles native code">
+              <target name="build-native" unless="native.uptodate" description="compiles native code">
                 <property name="make.cmd" value="make"/>
                 <property name="build.classes" refid="maven.compile.classpath"/>
-                <condition property="native.ldflags" value="" else="-Wl,--no-as-needed">
-                  <os family="mac"/>
+                <condition property="native.cflags" value="-mcpu=neoverse-n1 -march=armv8.2-a" else="">
+                  <os arch="aarch64"/>
                 </condition>
 
                 <mkdir dir="${build.native}/lib"/>
                 <mkdir dir="${build.native.target}/lib"/>
                 <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
+                <mkdir dir="${build.native}/extraclasses"/>
 
-                <javah classpath="${build.classes}"
-                    destdir="${build.native}/src/com/hadoop/compression/lzo"
-                    force="yes"
-                    verbose="yes">
-                  <class name="com.hadoop.compression.lzo.LzoCompressor" />
-                  <class name="com.hadoop.compression.lzo.LzoDecompressor" />
-                </javah>
+                <javac srcdir="${basedir}/src/main/java"
+                       destdir="${build.native}/extraclasses"
+                       classpath="${build.classes}"
+                       nativeheaderdir="${build.native}/src/com/hadoop/compression/lzo"
+                       verbose="yes">
+                </javac>
 
                 <exec dir="${build.native}" executable="sh" failonerror="true">
                   <env key="OS_NAME" value="${os.name}"/>
                   <env key="OS_ARCH" value="${os.arch}"/>
-                  <env key="LDFLAGS" value="${native.ldflags}"/>
+                  <env key="CFLAGS" value="${native.cflags}"/>
                   <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                   <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                   <arg line="${native.src.dir}/configure"/>
@@ -346,44 +207,6 @@
             </configuration>
           </execution>
           <execution>
-            <id>build-native-win</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target name="build-native-win" unless="native.uptodate" if="windows" description="compiles native code">
-                <property name="build.classes" refid="maven.compile.classpath"/>
-
-                <mkdir dir="${build.native}/lib"/>
-                <mkdir dir="${build.native.target}/lib"/>
-                <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
-
-                <javah classpath="${build.classes}"
-                    destdir="${build.native}/src/com/hadoop/compression/lzo"
-                    force="yes"
-                    verbose="yes">
-                  <class name="com.hadoop.compression.lzo.LzoCompressor" />
-                  <class name="com.hadoop.compression.lzo.LzoDecompressor" />
-                </javah>
-
-                <exec dir="${build.native}" executable="msbuild" failonerror="true">
-                  <arg value="${basedir}/src/main/native/gplcompression.sln" />
-                  <arg value="/nologo" />
-                  <arg value="/p:Configuration=Release" />
-                  <arg value="/p:IntDir=${build.native}/" />
-                  <arg value="/p:OutDir=${build.native}/" />
-                </exec>
-
-                <copy file="${build.native}/gplcompression.dll" todir="${build.native}/lib" />
-
-                <copy todir="${build.native.target}/lib">
-                  <fileset dir="${build.native}/lib"/>
-                </copy>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
             <id>prep-test</id>
             <phase>test-compile</phase>
             <goals>
@@ -397,25 +220,10 @@
             </configuration>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.ant</groupId>
-            <artifactId>ant</artifactId>
-            <version>1.10.9</version>
-          </dependency>
-          <dependency>
-            <groupId>com.sun</groupId>
-            <artifactId>tools</artifactId>
-            <version>1.6</version>
-            <scope>system</scope>
-            <systemPath>${java.home}/../lib/tools.jar</systemPath>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.14.1</version>
         <configuration>
           <reuseForks>false</reuseForks>
           <argLine>-Djava.library.path=${build.native.target}/lib</argLine>
@@ -427,64 +235,13 @@
             </systemPropertyVariables>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>2.2.1</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9</version>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
-        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
-        <plugin>
-          <groupId>org.eclipse.m2e</groupId>
-          <artifactId>lifecycle-mapping</artifactId>
-          <version>1.0.0</version>
-          <configuration>
-            <lifecycleMappingMetadata>
-              <pluginExecutions>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-antrun-plugin</artifactId>
-                    <versionRange>[1.7,)</versionRange>
-                    <goals>
-                      <goal>run</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore/>
-                  </action>
-                </pluginExecution>
-              </pluginExecutions>
-            </lifecycleMappingMetadata>
-          </configuration>
-        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-antrun-plugin</artifactId>
-          <version>1.7</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
