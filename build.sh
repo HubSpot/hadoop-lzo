@@ -7,7 +7,7 @@ set -ex
 
 cd $WORKSPACE
 # Deliberately don't clean before building, so we keep the previous run's native libraries
-$MAVEN_DIR/bin/mvn package
+mvn package
 
 VERSION="0.4.21-hubspot-SNAPSHOT"
 ARTIFACT_NAME="hadoop-lzo"
