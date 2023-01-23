@@ -6,7 +6,6 @@ buildDeps:
 
 buildpack:
   name: Blazar-Buildpack-RPM
-  branch: follow-maven-dir
 
 env:
   PLATFORMS: "amd64 arm64"
@@ -17,7 +16,7 @@ env:
   # The entry point script for the rpm build
   RPM_BUILD_COMMAND: "./build.sh"
   RPMS_OUTPUT_DIR: "$WORKSPACE/generated_rpms"
-  BUILD_CONTAINER_IMAGE_CENTOS_8: "docker.hubteam.com/apache-hadoop-build-container/remove-wailmer-arm64/apache-hadoop-build-container:latest"
+  BUILD_CONTAINER_IMAGE_CENTOS_8: "docker.hubteam.com/apache-hadoop-build-container/apache-hadoop-build-container:latest"
   WORKSPACE_WRITEABLE: "true"
 
 stepActivation:
