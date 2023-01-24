@@ -20,7 +20,6 @@
 .settings
 .svn
 build/
-bin/
 out/
 *.ipr
 *.iml
