@@ -1,5 +1,3 @@
-buildType: MAVEN
-
 buildDeps:
   - hs-build-tools
   - maven3
