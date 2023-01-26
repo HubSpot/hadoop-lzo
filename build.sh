@@ -26,6 +26,7 @@ fpm \
   --iteration "hs${BUILD_NUMBER}" \
   --architecture all \
   --force \
+  -d lzo \
   -s "dir" \
   -t "rpm" \
   --package "${RPMS_OUTPUT_DIR}" \
