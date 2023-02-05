@@ -50,21 +50,13 @@ before:
 
 after:
     onSuccess:
-      - name: createDeployable
-        description: "Creating deployable slug"
+      - name: upload
         commands:
           - mkdir -p /tmp/deploy-slug
           - cd /tmp/deploy-slug && mkdir -p app bin conf logs
           - cp hubspot.build.json /tmp/deploy-slug/conf/build.json
-          - cat /tmp/deploy-slug/conf/build.json
-          - cd $WORKSPACE && for each in $(find . -name target -type d); do mkdir -p /tmp/deploy-slug/app/$each && cp -r $each/* /tmp/deploy-slug/app/$each; done
+          - cp -r target /tmp/deploy-slug/app/target
           - 'tar czf artifact.tgz -C /tmp/deploy-slug .'
-
-      - name: uploadDeployable
-        description: "Uploading deployable slug to S3"
-        commands:
-          - command: upload-artifact --auto-sign --artifact artifact.tgz
-
-      - description: Add .blazar_notify_deploy_service_and_upload_artifact_if_exists flag
-        commands:
-          - command: touch .blazar_notify_deploy_service_and_upload_artifact_if_exists
+          - upload-artifact --auto-sign --artifact artifact.tgz
+          - publish-build-success --build-num=${MODULE_BUILD_NUMBER} --git-repo=${GIT_REPO}
+          - touch ".blazar_notify_deploy_service_and_upload_artifact_if_exists"
