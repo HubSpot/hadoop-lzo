@@ -20,3 +20,29 @@ env:
 stepActivation:
   uploadRpms:
     branchRegexes: [.*]
+
+before:
+  - description: Set yum repo
+    commands:
+      - |
+        if [ "$GIT_BRANCH" = "$MAIN_BRANCH" ]; then
+          repo=$MAIN_YUM_REPO
+        else
+          repo=$DEVELOP_YUM_REPO
+        fi
+        # exports in this rc file are available in all steps
+        echo "export YUM_REPO_UPLOAD_OVERRIDE_CENTOS_8=$repo" >> $BUILD_COMMAND_RC_FILE
+        echo "Will upload package to $repo"
+
+after:
+    onSuccess:
+      - description: Upload to maven
+        commands:
+          - mvn -Dgpg.executable=/opt/build-deps/hs-build-tools/venv/bin/sign-maven-artifact
+                -B
+                -N
+                -U
+                com.hubspot:build-location-maven-plugin:1.0-SNAPSHOT:check
+                deploy
+                com.hubspot.mercedes:mercedes-maven-plugin:0.1-SNAPSHOT:report
+                org.apache.maven.plugins:maven-gpg-plugin:1.6:sign
