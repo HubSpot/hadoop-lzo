@@ -33,17 +33,37 @@ before:
         # exports in this rc file are available in all steps
         echo "export YUM_REPO_UPLOAD_OVERRIDE_CENTOS_8=$repo" >> $BUILD_COMMAND_RC_FILE
         echo "Will upload package to $repo"
+  - description: "Overriding maven versions if on a branch"
+    commands:
+      - command: '[ "$GIT_BRANCH" == "master" ] || set-maven-versions --version $SET_VERSION --root $WORKSPACE'
+        env:
+          SET_VERSION: "0.4.21-hubspot-${GIT_BRANCH}-SNAPSHOT"
+  - description: "Creating hubspot.build.json metadata"
+    commands:
+      - |
+        create-build-json --workspace_path . --project_name $BLAZAR_COORDINATES
+        for pomfile in $(find . -name pom.xml -maxdepth 2); do
+          pomdir=$(dirname $pomfile)
+          echo "Copying build json into $pomdir"
+          copy-build-json --search-dir . --module-dir $pomdir
+        done
 
 after:
     onSuccess:
-      - description: Upload to maven
+      - name: createDeployable
+        description: "Creating deployable slug"
         commands:
-          - mvn -Dgpg.executable=/opt/build-deps/hs-build-tools/venv/bin/sign-maven-artifact
-                -DskipTests
-                -B
-                -N
-                -U
-                com.hubspot:build-location-maven-plugin:1.0-SNAPSHOT:check
-                deploy
-                com.hubspot.mercedes:mercedes-maven-plugin:0.1-SNAPSHOT:report
-                org.apache.maven.plugins:maven-gpg-plugin:1.6:sign
+          - mkdir -p /tmp/deploy-slug
+          - cd /tmp/deploy-slug && mkdir -p app bin conf logs
+          - cp hubspot.build.json /tmp/deploy-slug/conf/build.json
+          - cd $WORKSPACE && for each in $(find . -name target -type d); do mkdir -p /tmp/deploy-slug/app/$each && cp -r $each/* /tmp/deploy-slug/app/$each; done
+          - 'tar czf artifact.tgz -C /tmp/deploy-slug .'
+
+      - name: uploadDeployable
+        description: "Uploading deployable slug to S3"
+        commands:
+          - command: upload-artifact --auto-sign --artifact artifact.tgz
+
+      - description: Add .blazar_notify_deploy_service_and_upload_artifact_if_exists flag
+        commands:
+          - command: touch .blazar_notify_deploy_service_and_upload_artifact_if_exists

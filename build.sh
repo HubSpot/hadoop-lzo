@@ -9,15 +9,16 @@ cd $WORKSPACE
 # Deliberately don't clean before building, so we keep the previous run's native libraries
 mvn package -DskipTests
 
-VERSION="0.4.21-hubspot-SNAPSHOT"
 ARTIFACT_NAME="hadoop-lzo"
 
 if [ "$GIT_BRANCH" = "master" ]
 then
   PACKAGE_NAME=$ARTIFACT_NAME
+  VERSION="0.4.21-hubspot-SNAPSHOT"
 else
   echo "Not on master."
   PACKAGE_NAME="$ARTIFACT_NAME-$GIT_BRANCH"
+  VERSION="0.4.21-hubspot-${GIT_BRANCH}-SNAPSHOT"
 fi
 
 fpm \
