@@ -9,20 +9,22 @@ cd $WORKSPACE
 # Deliberately don't clean before building, so we keep the previous run's native libraries
 mvn package -DskipTests
 
-VERSION="0.4.21-hubspot-SNAPSHOT"
+RPM_VERSION="0.4.21-hubspot-SNAPSHOT"
 ARTIFACT_NAME="hadoop-lzo"
 
 if [ "$GIT_BRANCH" = "master" ]
 then
   PACKAGE_NAME=$ARTIFACT_NAME
+  MAVEN_VERSION="0.4.21-hubspot-SNAPSHOT"
 else
   echo "Not on master."
   PACKAGE_NAME="$ARTIFACT_NAME-$GIT_BRANCH"
+  MAVEN_VERSION="0.4.21-hubspot-${GIT_BRANCH}-SNAPSHOT"
 fi
 
 fpm \
   --name "${PACKAGE_NAME}" \
-  --version ${VERSION} \
+  --version ${RPM_VERSION} \
   --iteration "hs${BUILD_NUMBER}" \
   --architecture all \
   --force \
@@ -30,4 +32,4 @@ fpm \
   -s "dir" \
   -t "rpm" \
   --package "${RPMS_OUTPUT_DIR}" \
-  "${WORKSPACE}/target/hadoop-lzo-${VERSION}.jar=/usr/lib/hadoop/lib/hadoop-lzo-${VERSION}.jar"
+  "${WORKSPACE}/target/hadoop-lzo-${MAVEN_VERSION}.jar=/usr/lib/hadoop/lib/hadoop-lzo-${MAVEN_VERSION}.jar"
