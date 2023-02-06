@@ -6,7 +6,7 @@ buildpack:
   name: Blazar-Buildpack-RPM
 
 env:
-  PLATFORMS: "amd64"
+  PLATFORMS: "amd64 arm64"
   # Don't use the buildpack to build and upload RPMs for us
   DISABLE_CENTOS_6_RPMS: "true"
   ENABLE_CENTOS_8_RPMS: "true"
