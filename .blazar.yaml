@@ -50,13 +50,29 @@ before:
 
 after:
     onSuccess:
-      - name: upload
+      - name: deploy
         commands:
-          - mkdir -p /tmp/deploy-slug
-          - cd /tmp/deploy-slug && mkdir -p app bin conf logs
-          - cp hubspot.build.json /tmp/deploy-slug/conf/build.json
-          - cp -r target /tmp/deploy-slug/app/target
-          - 'tar czf artifact.tgz -C /tmp/deploy-slug .'
-          - upload-artifact --auto-sign --artifact artifact.tgz
-          - publish-build-success --build-num=${MODULE_BUILD_NUMBER} --git-repo=${GIT_REPO}
-          - touch ".blazar_notify_deploy_service_and_upload_artifact_if_exists"
+          - mvn $MAVEN_ARGS
+            -Dblazar.enableLogSegmentation=true
+            -DaltSnapshotDeploymentRepository=hubspot-maven-artifacts-prod::default::s3://hubspot-maven-artifacts-prod/artifacts/snapshots
+            -DaltReleaseDeploymentRepository=hubspot-maven-artifacts-prod::default::s3://please-publish-a-snapshot
+            -DaltDeploymentRepository=hubspot-maven-artifacts-prod::default::s3://please-upgrade-maven-deploy-plugin
+            -Dmaven.install.skip=true
+            -Daether.artifactResolver.snapshotNormalization=false
+            -Daether.connector.resumeDownloads=false
+            -DargLine="-Xmx$MAVEN_TEST_HEAP -XX:+TieredCompilation -XX:TieredStopAtLevel=1 $MAVEN_EXTRA_TEST_ARGLINE_ARGS"
+            -Dextra.test.arg.line="-Xmx$MAVEN_TEST_HEAP $MAVEN_EXTRA_TEST_ARGLINE_ARGS"
+            -Dstyle.color=always
+            -Dgpg.executable=/opt/build-deps/hs-build-tools/venv/bin/sign-maven-artifact
+            -B
+            -N
+            -U
+            -DskipTests
+            com.hubspot:build-location-maven-plugin:1.0-SNAPSHOT:check
+            deploy
+            com.hubspot.mercedes:mercedes-maven-plugin:0.1-SNAPSHOT:report
+            org.apache.maven.plugins:maven-gpg-plugin:1.6:sign
+
+      - description: "Add .blazar_notify_deploy_service_and_upload_artifact_if_exists flag"
+        commands:
+          - command: touch ".blazar_notify_deploy_service_and_upload_artifact_if_exists"
