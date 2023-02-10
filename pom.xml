@@ -230,7 +230,7 @@
                       <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
                       <env key="LDFLAGS" value="-L/usr/local/${native.host}/lib"/>
                       <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
-                      <arg line="${native.src.dir}/configure"/>
+                      <arg line="${build.native}/lzo/lzo-2.10/configure"/>
                       <arg line="--host=${native.host}"/>
                     </exec>
 
