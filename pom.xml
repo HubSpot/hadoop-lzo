@@ -131,6 +131,7 @@
                     <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
                     <mkdir dir="${build.native}/extraclasses"/>
 
+                    <!-- Generate C headers for our Java classes. Also builds Java class files, we just ignore those. -->
                     <javac srcdir="${basedir}/src/main/java"
                            destdir="${build.native}/extraclasses"
                            classpath="${build.classes}"
@@ -139,6 +140,7 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <env key="OS_ARCH" value="${os.arch}"/>
                       <env key="CFLAGS" value="${native.cflags}"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
@@ -215,18 +217,19 @@
                     <mkdir dir="${build.native}/extraclasses"/>
                     <mkdir dir="${build.native}/lzo"/>
 
+                    <!-- When cross-compiling, we do not have the luxury of linking against any libraries on the system, like liblzo2.
+                         Build this dependency in Mac-format for ourselves. -->
                     <gunzip src="${basedir}/provided/lzo-2.10.tar.gz" dest="${build.native}/lzo"/>
                     <untar src="${build.native}/lzo/lzo-2.10.tar" dest="${build.native}/lzo"/>
-
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="sh" failonerror="true">
                       <env key="CC" value="${native.host}-cc"/>
                       <arg line="${build.native}/lzo/lzo-2.10/configure"/>
                       <arg line="--host=${native.host}"/>
                       <arg line="--enable-shared"/>
                     </exec>
-
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true"/>
 
+                    <!-- Generate C headers for our Java classes. Also builds Java class files, we just ignore those. -->
                     <javac srcdir="${basedir}/src/main/java"
                            destdir="${build.native}/extraclasses"
                            classpath="${build.classes}"
@@ -235,12 +238,16 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <env key="OS_ARCH" value="${os.arch}"/>
                       <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
                       <env key="CPPFLAGS" value="-I/usr/include"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <!-- use the Linux-to-Mac crosscompiling compiler -->
                       <env key="CC" value="${native.host}-cc"/>
+                      <!-- use cross-compiling otool to permit configure script to discover Mac-format lzo2 library we compiled earlier -->
                       <env key="OTOOL" value="${native.host}-otool"/>
+                      <!-- permit the configure script to discover the Mac-format LZO library we compiled earlier -->
                       <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
                       <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
                       <arg line="${native.src.dir}/configure"/>
