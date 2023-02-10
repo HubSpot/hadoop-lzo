@@ -84,32 +84,203 @@
     </developer>
   </developers>
 
+  <profiles>
+    <profile>
+      <id>build-native-linux</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>set-props</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target name="set-props" description="sets key properties that are used throughout">
+                    <exec executable="sed" inputstring="${os.name}" outputproperty="nonspace.os">
+                      <arg value="s/ /_/g"/>
+                    </exec>
+                    <property name="build.platform" value="${nonspace.os}-${os.arch}-${sun.arch.data.model}"/>
+                    <property name="build.native" value="${project.build.directory}/native/${build.platform}"/>
+                    <property name="build.native.target" value="${project.build.outputDirectory}/native/${build.platform}"/>
+                    <property name="native.src.dir" value="${basedir}/src/main/native"/>
+                    <property name="test.build.dir" value="${project.build.directory}/test-classes"/>
+                    <property name="test.log.dir" value="${test.build.dir}/logs"/>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-native</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-native" unless="native.uptodate" description="compiles native code">
+                    <property name="make.cmd" value="make"/>
+                    <property name="build.classes" refid="maven.compile.classpath"/>
+                    <condition property="native.cflags" value="-mcpu=neoverse-n1 -march=armv8.2-a" else="">
+                      <os arch="aarch64"/>
+                    </condition>
+
+                    <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
+                      <env key="OS_NAME" value="${os.name}"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <arg line="distclean"/>
+                    </exec>
+
+                    <mkdir dir="${build.native}/lib"/>
+                    <mkdir dir="${build.native.target}/lib"/>
+                    <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
+                    <mkdir dir="${build.native}/extraclasses"/>
+
+                    <javac srcdir="${basedir}/src/main/java"
+                           destdir="${build.native}/extraclasses"
+                           classpath="${build.classes}"
+                           nativeheaderdir="${build.native}/src/com/hadoop/compression/lzo"
+                           verbose="yes">
+                    </javac>
+
+                    <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <env key="OS_NAME" value="${os.name}"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="CFLAGS" value="${native.cflags}"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <arg line="${native.src.dir}/configure"/>
+                    </exec>
+
+                    <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
+                      <env key="OS_NAME" value="${os.name}"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+                    </exec>
+
+                    <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <arg line="${build.native}/libtool --mode=install cp ${build.native}/libgplcompression.la ${build.native}/lib"/>
+                    </exec>
+
+                    <copy todir="${build.native.target}/lib">
+                      <fileset dir="${build.native}/lib"/>
+                    </copy>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>build-native-mac</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>set-props</id>
+                <phase>initialize</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <exportAntProperties>true</exportAntProperties>
+                  <target name="set-props" description="sets key properties that are used throughout">
+                    <property name="build.platform" value="Mac_OS_X-${os.arch}-${sun.arch.data.model}"/>
+                    <property name="build.native" value="${project.build.directory}/native/${build.platform}"/>
+                    <property name="build.native.target" value="${project.build.outputDirectory}/native/${build.platform}"/>
+                    <property name="native.src.dir" value="${basedir}/src/main/native"/>
+                    <property name="test.build.dir" value="${project.build.directory}/test-classes"/>
+                    <property name="test.log.dir" value="${test.build.dir}/logs"/>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-native</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target name="build-native" unless="native.uptodate" description="compiles native code">
+                    <property name="make.cmd" value="make"/>
+                    <property name="build.classes" refid="maven.compile.classpath"/>
+                    <condition property="native.cflags" value="-mcpu=neoverse-n1 -march=armv8.2-a" else="">
+                      <os arch="aarch64"/>
+                    </condition>
+
+                    <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
+                      <env key="OS_NAME" value="${os.name}"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <arg line="distclean"/>
+                    </exec>
+
+                    <mkdir dir="${build.native}/lib"/>
+                    <mkdir dir="${build.native.target}/lib"/>
+                    <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
+                    <mkdir dir="${build.native}/extraclasses"/>
+
+                    <javac srcdir="${basedir}/src/main/java"
+                           destdir="${build.native}/extraclasses"
+                           classpath="${build.classes}"
+                           nativeheaderdir="${build.native}/src/com/hadoop/compression/lzo"
+                           verbose="yes">
+                    </javac>
+
+                    <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <env key="OS_NAME" value="Mac OS X"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
+                      <env key="CPPFLAGS" value="-I/usr/include"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <env key="CC" value="${os.arch}-apple-darwin21.4-cc"/>
+                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
+                      <env key="LDFLAGS" value="-L/usr/local/${os.arch}-apple-darwin21.4/lib"/>
+                      <arg line="${native.src.dir}/configure"/>
+                      <arg line="--host=${os.arch}-apple-darwin21.4"/>
+                    </exec>
+
+                    <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
+                      <env key="OS_NAME" value="Mac OS X"/>
+                      <env key="OS_ARCH" value="${os.arch}"/>
+                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
+                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
+                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
+                    </exec>
+
+                    <exec dir="${build.native}" executable="sh" failonerror="true">
+                      <arg line="${build.native}/libtool --mode=install cp ${build.native}/libgplcompression.la ${build.native}/lib"/>
+                    </exec>
+
+                    <copy todir="${build.native.target}/lib">
+                      <fileset dir="${build.native}/lib"/>
+                    </copy>
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>
-          <execution>
-            <id>set-props</id>
-            <phase>initialize</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <exportAntProperties>true</exportAntProperties>
-              <target name="set-props" description="sets key properties that are used throughout">
-                <exec executable="sed" inputstring="${os.name}" outputproperty="nonspace.os">
-                  <arg value="s/ /_/g"/>
-                </exec>
-                <property name="build.platform" value="${nonspace.os}-${os.arch}-${sun.arch.data.model}"/>
-                <property name="build.native" value="${project.build.directory}/native/${build.platform}"/>
-                <property name="build.native.target" value="${project.build.outputDirectory}/native/${build.platform}"/>
-                <property name="native.src.dir" value="${basedir}/src/main/native"/>
-                <property name="test.build.dir" value="${project.build.directory}/test-classes"/>
-                <property name="test.log.dir" value="${test.build.dir}/logs"/>
-              </target>
-            </configuration>
-          </execution>
           <execution>
             <id>build-info</id>
             <phase>compile</phase>
@@ -151,58 +322,6 @@
                 <uptodate property="native.uptodate" targetfile="${build.native.target}/lib/libgplcompression.la">
                   <srcfiles dir="${native.src.dir}" includes="**/*"/>
                 </uptodate>
-              </target>
-            </configuration>
-          </execution>
-          <execution>
-            <id>build-native</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target name="build-native" unless="native.uptodate" description="compiles native code">
-                <property name="make.cmd" value="make"/>
-                <property name="build.classes" refid="maven.compile.classpath"/>
-                <condition property="native.cflags" value="-mcpu=neoverse-n1 -march=armv8.2-a" else="">
-                  <os arch="aarch64"/>
-                </condition>
-
-                <mkdir dir="${build.native}/lib"/>
-                <mkdir dir="${build.native.target}/lib"/>
-                <mkdir dir="${build.native}/src/com/hadoop/compression/lzo"/>
-                <mkdir dir="${build.native}/extraclasses"/>
-
-                <javac srcdir="${basedir}/src/main/java"
-                       destdir="${build.native}/extraclasses"
-                       classpath="${build.classes}"
-                       nativeheaderdir="${build.native}/src/com/hadoop/compression/lzo"
-                       verbose="yes">
-                </javac>
-
-                <exec dir="${build.native}" executable="sh" failonerror="true">
-                  <env key="OS_NAME" value="${os.name}"/>
-                  <env key="OS_ARCH" value="${os.arch}"/>
-                  <env key="CFLAGS" value="${native.cflags}"/>
-                  <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                  <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
-                  <arg line="${native.src.dir}/configure"/>
-                </exec>
-
-                <exec dir="${build.native}" executable="${make.cmd}" failonerror="true">
-                  <env key="OS_NAME" value="${os.name}"/>
-                  <env key="OS_ARCH" value="${os.arch}"/>
-                  <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                  <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
-                </exec>
-
-                <exec dir="${build.native}" executable="sh" failonerror="true">
-                  <arg line="${build.native}/libtool --mode=install cp ${build.native}/libgplcompression.la ${build.native}/lib"/>
-                </exec>
-
-                <copy todir="${build.native.target}/lib">
-                  <fileset dir="${build.native}/lib"/>
-                </copy>
               </target>
             </configuration>
           </execution>
