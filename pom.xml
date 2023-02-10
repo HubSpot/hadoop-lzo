@@ -93,7 +93,7 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>set-props</id>
+                <id>set-props-linux</id>
                 <phase>initialize</phase>
                 <goals>
                   <goal>run</goal>
@@ -114,7 +114,7 @@
                 </configuration>
               </execution>
               <execution>
-                <id>build-native</id>
+                <id>build-native-linux</id>
                 <phase>compile</phase>
                 <goals>
                   <goal>run</goal>
@@ -139,8 +139,6 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
-                      <env key="OS_NAME" value="${os.name}"/>
-                      <env key="OS_ARCH" value="${os.arch}"/>
                       <env key="CFLAGS" value="${native.cflags}"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
@@ -148,8 +146,6 @@
                     </exec>
 
                     <exec dir="${build.native}" executable="make" failonerror="true">
-                      <env key="OS_NAME" value="${os.name}"/>
-                      <env key="OS_ARCH" value="${os.arch}"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
                     </exec>
@@ -177,7 +173,7 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>set-props</id>
+                <id>set-props-mac</id>
                 <phase>initialize</phase>
                 <goals>
                   <goal>run</goal>
@@ -195,7 +191,7 @@
                 </configuration>
               </execution>
               <execution>
-                <id>build-native</id>
+                <id>build-native-mac</id>
                 <phase>compile</phase>
                 <goals>
                   <goal>run</goal>
@@ -222,21 +218,17 @@
                     <gunzip dest="${build.native}/lzo">
                       <url url="http://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz"/>
                     </gunzip>
-
                     <untar src="${build.native}/lzo/lzo-2.10.tar" dest="${build.native}/lzo"/>
 
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="sh" failonerror="true">
                       <env key="CC" value="${native.host}-cc"/>
-                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
                       <env key="LDFLAGS" value="-L/usr/local/${native.host}/lib"/>
-                      <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
                       <arg line="${build.native}/lzo/lzo-2.10/configure"/>
                       <arg line="--host=${native.host}"/>
+                      <arg line="--enabled-shared"/>
                     </exec>
 
-                    <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true">
-                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
-                    </exec>
+                    <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true"/>
 
                     <javac srcdir="${basedir}/src/main/java"
                            destdir="${build.native}/extraclasses"
@@ -246,15 +238,12 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
-                      <env key="OS_NAME" value="Mac OS X"/>
-                      <env key="OS_ARCH" value="${os.arch}"/>
-                      <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
-                      <env key="CPPFLAGS" value="-I/usr/include"/>
+                      <env key="CFLAGS" value="${native.cflags} -I/usr/local/include"/>
+                      <env key="CPPFLAGS" value="-I/usr/local/include"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                       <env key="CC" value="${native.host}-cc"/>
                       <env key="OTOOL" value="${native.host}-otool"/>
-                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
                       <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
                       <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
                       <arg line="${native.src.dir}/configure"/>
@@ -262,11 +251,7 @@
                     </exec>
 
                     <exec dir="${build.native}" executable="make" failonerror="true">
-                      <env key="OS_NAME" value="Mac OS X"/>
-                      <env key="OS_ARCH" value="${os.arch}"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
-                      <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
                     </exec>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
@@ -288,6 +273,27 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>mac-or-linux</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireActiveProfile>
+                  <profiles>build-native-linux,build-native-mac</profiles>
+                  <all>false</all>
+                </requireActiveProfile>
+              </rules>
+              <fail>true</fail>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
         <executions>

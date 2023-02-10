@@ -7,7 +7,8 @@ set -ex
 
 cd $WORKSPACE
 # Deliberately don't clean before building, so we keep the previous run's native libraries
-mvn package -DskipTests
+mvn package -DskipTests -Pbuild-native-linux
+mvn package -DskipTests -Pbuild-native-mac
 
 RPM_VERSION="0.4.21-hubspot-SNAPSHOT"
 ARTIFACT_NAME="hadoop-lzo"
