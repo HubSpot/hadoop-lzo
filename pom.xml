@@ -144,15 +144,11 @@
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
                       <env key="CFLAGS" value="${native.cflags}"/>
-                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                      <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                       <arg line="${native.src.dir}/configure"/>
                     </exec>
 
                     <exec dir="${build.native}" executable="make" failonerror="true">
                       <env key="OS_ARCH" value="${os.arch}"/>
-                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                      <env key="HADOOP_NATIVE_SRCDIR" value="${native.src.dir}"/>
                     </exec>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
@@ -247,12 +243,8 @@
                     <exec dir="${build.native}" executable="sh" failonerror="true">
                       <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
                       <env key="CPPFLAGS" value="-I/usr/include"/>
-                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
-                      <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                       <!-- use the Linux-to-Mac crosscompiling compiler -->
                       <env key="CC" value="${native.host}-cc"/>
-                      <!-- use cross-compiling otool to permit configure script to discover Mac-format lzo2 library we compiled earlier -->
-                      <env key="OTOOL" value="${native.host}-otool"/>
                       <!-- permit the configure script to discover the Mac-format LZO library we compiled earlier -->
                       <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
                       <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
@@ -262,7 +254,6 @@
 
                     <exec dir="${build.native}" executable="make" failonerror="true">
                       <env key="OS_ARCH" value="${os.arch}"/>
-                      <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                     </exec>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
