@@ -14,7 +14,7 @@ env:
   # The entry point script for the rpm build
   RPM_BUILD_COMMAND: "./build.sh"
   RPMS_OUTPUT_DIR: "$WORKSPACE/generated_rpms"
-  BUILD_CONTAINER_IMAGE_CENTOS_8: "docker.hubteam.com/apache-hadoop-build-container/hs-linux-darwin-toolchain/apache-hadoop-build-container:latest"
+  BUILD_CONTAINER_IMAGE_CENTOS_8: "docker.hubteam.com/apache-hadoop-build-container/hs-linux-darwin-toolchain-arm64/apache-hadoop-build-container:latest"
   WORKSPACE_WRITEABLE: "true"
 
 stepActivation:
