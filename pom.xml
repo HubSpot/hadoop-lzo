@@ -237,8 +237,8 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
-                      <env key="CFLAGS" value="${native.cflags} -I/usr/local/include"/>
-                      <env key="CPPFLAGS" value="-I/usr/local/include"/>
+                      <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
+                      <env key="CPPFLAGS" value="-I/usr/include"/>
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                       <env key="CC" value="${native.host}-cc"/>
