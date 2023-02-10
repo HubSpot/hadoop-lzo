@@ -219,7 +219,11 @@
                     <mkdir dir="${build.native}/extraclasses"/>
                     <mkdir dir="${build.native}/lzo"/>
 
-                    <untar src="${basedir}/provided/lzo-2.10.tar.gz" dest="${build.native}/lzo"/>
+                    <gunzip dest="${build.native}/lzo">
+                      <url url="http://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz"/>
+                    </gunzip>
+
+                    <untar src="${build.native}/lzo/lzo-2.10.tar" dest="${build.native}/lzo"/>
 
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="sh" failonerror="true">
                       <env key="CC" value="${native.host}-cc"/>
