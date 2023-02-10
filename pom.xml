@@ -253,6 +253,7 @@
                       <env key="JVM_DATA_MODEL" value="${sun.arch.data.model}"/>
                       <env key="NATIVE_SRCDIR" value="${native.src.dir}"/>
                       <env key="CC" value="${native.host}-cc"/>
+                      <env key="OTOOL" value="${native.host}-otool"/>
                       <env key="LD_LIBRARY_PATH" value="/usr/local/lib"/>
                       <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
                       <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
