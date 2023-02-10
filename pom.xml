@@ -222,10 +222,9 @@
 
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="sh" failonerror="true">
                       <env key="CC" value="${native.host}-cc"/>
-                      <env key="LDFLAGS" value="-L/usr/local/${native.host}/lib"/>
                       <arg line="${build.native}/lzo/lzo-2.10/configure"/>
                       <arg line="--host=${native.host}"/>
-                      <arg line="--enabled-shared"/>
+                      <arg line="--enable-shared"/>
                     </exec>
 
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true"/>
