@@ -241,13 +241,12 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
-                      <env key="CFLAGS" value="${native.cflags} -I/usr/include"/>
-                      <env key="CPPFLAGS" value="-I/usr/include"/>
+                      <env key="CFLAGS" value="${native.cflags} -I${build.native}/lzo/lzo-2.10/include"/>
+                      <env key="CPPFLAGS" value="-I${build.native}/lzo/lzo-2.10/include"/>
                       <!-- use the Linux-to-Mac crosscompiling compiler -->
                       <env key="CC" value="${native.host}-cc"/>
                       <!-- permit the configure script to discover the Mac-format LZO library we compiled earlier -->
                       <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
-                      <env key="OSXCROSS_NO_INCLUDE_PATH_WARNINGS" value="1"/>
                       <arg line="${native.src.dir}/configure"/>
                       <arg line="--host=${native.host}"/>
                     </exec>
