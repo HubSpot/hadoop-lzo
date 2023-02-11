@@ -126,7 +126,7 @@
                       <os arch="aarch64"/>
                     </condition>
                     <condition property="native.cflags" value="-m64" else="">
-                      <os arch="x86_64"/>
+                      <os arch="amd64"/>
                     </condition>
 
                     <mkdir dir="${build.native}/lib"/>
@@ -204,7 +204,7 @@
                       <os arch="aarch64"/>
                     </condition>
                     <condition property="native.cflags" value="-m64">
-                      <os arch="x86_64"/>
+                      <os arch="amd64"/>
                     </condition>
                     <condition property="native.host" value="aarch64-apple-darwin21.4">
                       <os arch="aarch64"/>
