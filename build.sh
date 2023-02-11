@@ -1,6 +1,7 @@
 #!/bin/sh
 
-set -ex
+set -e
+set -x
 
 # This build is unusual in that we run `mvn package` in Docker containers under both architectures, so we generate
 # the native libraries for both. Then we package both of those into a single multi-arch JAR.
