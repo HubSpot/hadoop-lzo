@@ -267,10 +267,12 @@
                       <fileset dir="${build.native}/lib"/>
                     </copy>
                     <!-- copy the contents of Mac_OS_X-amd64-64 to Mac_OS_X-x86_64-64 so users don't miss them -->
-                    <property name="build.new.platform" value="Mac_OS_X-x86_64-${sun.arch.data.model}"/>
-                    <property name="build.new.native.target" value="${project.build.outputDirectory}/native/${build.new.platform}"/>
-                    <copy todir="${build.new.native.target}/lib" failonerror="false">
-                      <fileset dir="${build.native}/lib"/>
+                    <property name="build.x86_64.platform" value="Mac_OS_X-x86_64-${sun.arch.data.model}"/>
+                    <property name="build.x86_64.native.target" value="${project.build.outputDirectory}/native/${build.x86_64.platform}"/>
+                    <property name="build.amd64.platform" value="Mac_OS_X-amd64-${sun.arch.data.model}"/>
+                    <property name="build.amd64.native" value="${project.build.directory}/native/${build.amd64.platform}"/>
+                    <copy todir="${build.x86_64.native.target}/lib" failonerror="false">
+                      <fileset dir="${build.amd64.native}/lib"/>
                     </copy>
                   </target>
                 </configuration>
