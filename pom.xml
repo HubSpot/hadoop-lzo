@@ -229,8 +229,12 @@
                       <arg line="${build.native}/lzo/lzo-2.10/configure"/>
                       <arg line="--host=${native.host}"/>
                       <arg line="--enable-shared"/>
+                      <arg line="--prefix=/usr/darwin"/>
                     </exec>
                     <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true"/>
+                    <exec dir="${build.native}/lzo/lzo-2.10" executable="make" failonerror="true">
+                      <arg line="install"/>
+                    </exec>
 
                     <!-- Generate C headers for our Java classes. Also builds Java class files, we just ignore those. -->
                     <javac srcdir="${basedir}/src/main/java"
@@ -241,12 +245,12 @@
                     </javac>
 
                     <exec dir="${build.native}" executable="sh" failonerror="true">
-                      <env key="CFLAGS" value="${native.cflags} -I${build.native}/lzo/lzo-2.10/include -I/usr/darwin/include"/>
-                      <env key="CPPFLAGS" value="-I${build.native}/lzo/lzo-2.10/include -I/usr/darwin/include"/>
+                      <env key="CFLAGS" value="${native.cflags} -I/usr/darwin/include"/>
+                      <env key="CPPFLAGS" value="-I/usr/darwin/include"/>
                       <!-- use the Linux-to-Mac crosscompiling compiler -->
                       <env key="CC" value="${native.host}-cc"/>
                       <!-- permit the configure script to discover the Mac-format LZO library we compiled earlier -->
-                      <env key="LDFLAGS" value="-L${build.native}/lzo/lzo-2.10/src/.libs"/>
+                      <env key="LDFLAGS" value="-L/usr/darwin/lib"/>
                       <arg line="${native.src.dir}/configure"/>
                       <arg line="--host=${native.host}"/>
                     </exec>
