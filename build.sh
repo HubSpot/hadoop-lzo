@@ -1,13 +1,15 @@
 #!/bin/sh
 
-set -ex
+set -e
+set -x
 
 # This build is unusual in that we run `mvn package` in Docker containers under both architectures, so we generate
 # the native libraries for both. Then we package both of those into a single multi-arch JAR.
 
 cd $WORKSPACE
 # Deliberately don't clean before building, so we keep the previous run's native libraries
-mvn package -DskipTests
+mvn package -DskipTests -Pbuild-native-linux
+mvn package -DskipTests -Pbuild-native-mac
 
 RPM_VERSION="0.4.21-hubspot-SNAPSHOT"
 ARTIFACT_NAME="hadoop-lzo"
