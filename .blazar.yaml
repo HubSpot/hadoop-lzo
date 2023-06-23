@@ -10,6 +10,7 @@ env:
   # Don't use the buildpack to build and upload RPMs for us
   DISABLE_CENTOS_6_RPMS: "true"
   ENABLE_CENTOS_8_RPMS: "true"
+  YUM_REPO_UPLOAD_OVERRIDE_CENTOS_8: "AnyLinuxVersion_HubSpot"
 
   # The entry point script for the rpm build
   RPM_BUILD_COMMAND: "./build.sh"
