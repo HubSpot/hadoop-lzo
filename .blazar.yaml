@@ -23,17 +23,6 @@ stepActivation:
     branchRegexes: [.*]
 
 before:
-  - description: Set yum repo
-    commands:
-      - |
-        if [ "$GIT_BRANCH" = "$MAIN_BRANCH" ]; then
-          repo=$MAIN_YUM_REPO
-        else
-          repo=$DEVELOP_YUM_REPO
-        fi
-        # exports in this rc file are available in all steps
-        echo "export YUM_REPO_UPLOAD_OVERRIDE_CENTOS_8=$repo" >> $BUILD_COMMAND_RC_FILE
-        echo "Will upload package to $repo"
   - description: "Overriding maven versions if on a branch"
     commands:
       - command: '[ "$GIT_BRANCH" == "master" ] || set-maven-versions --version $SET_VERSION --root $WORKSPACE'
