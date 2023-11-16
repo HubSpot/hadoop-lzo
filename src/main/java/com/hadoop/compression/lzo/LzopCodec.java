@@ -92,7 +92,7 @@ public class LzopCodec extends LzoCodec {
 
   public CompressionOutputStream createIndexedOutputStream(OutputStream out,
         DataOutputStream indexOut, Compressor compressor) throws IOException {
-    if (!isNativeLzoLoaded(getConf())) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     LzoCompressor.CompressionStrategy strategy = LzoCompressor.CompressionStrategy.valueOf(
@@ -105,7 +105,7 @@ public class LzopCodec extends LzoCodec {
   public CompressionInputStream createInputStream(InputStream in,
           Decompressor decompressor) throws IOException {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(getConf())) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return new LzopInputStream(in, decompressor,
@@ -152,7 +152,7 @@ public class LzopCodec extends LzoCodec {
   @Override
   public Class<? extends Decompressor> getDecompressorType() {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(getConf())) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return LzopDecompressor.class;
@@ -160,7 +160,7 @@ public class LzopCodec extends LzoCodec {
 
   @Override
   public Decompressor createDecompressor() {
-    if (!isNativeLzoLoaded(getConf())) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return new LzopDecompressor(getConf().getInt(LZO_BUFFER_SIZE_KEY, DEFAULT_LZO_BUFFER_SIZE));

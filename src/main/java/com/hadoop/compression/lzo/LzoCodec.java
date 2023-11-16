@@ -85,13 +85,11 @@ public class LzoCodec implements Configurable, CompressionCodec {
   /**
    * Check if native-lzo library is loaded and initialized.
    *
-   * @param conf configuration
    * @return <code>true</code> if native-lzo library is loaded and initialized;
    *         else <code>false</code>
    */
-  public static boolean isNativeLzoLoaded(Configuration conf) {
-    assert conf != null : "Configuration cannot be null!";
-    return nativeLzoLoaded && conf.getBoolean("hadoop.native.lib", true);
+  public static boolean isNativeLzoLoaded() {
+    return nativeLzoLoaded;
   }
 
   public static String getRevisionHash() {
@@ -114,7 +112,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
   public CompressionOutputStream createOutputStream(OutputStream out,
       Compressor compressor) throws IOException {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
 
@@ -151,7 +149,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
   @Override
   public Class<? extends Compressor> getCompressorType() {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return LzoCompressor.class;
@@ -161,7 +159,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
   public Compressor createCompressor() {
     // Ensure native-lzo library is loaded & initialized
     assert conf != null : "Configuration cannot be null! You must call setConf() before creating a compressor.";
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
 
@@ -179,7 +177,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
       Decompressor decompressor)
   throws IOException {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return new BlockDecompressorStream(in, decompressor,
@@ -189,7 +187,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
   @Override
   public Class<? extends Decompressor> getDecompressorType() {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
     return LzoDecompressor.class;
@@ -198,7 +196,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
   @Override
   public Decompressor createDecompressor() {
     // Ensure native-lzo library is loaded & initialized
-    if (!isNativeLzoLoaded(conf)) {
+    if (!isNativeLzoLoaded()) {
       throw new RuntimeException("native-lzo library not available");
     }
 
