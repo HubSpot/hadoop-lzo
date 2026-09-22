@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 #
-# Builds libgplcompression for the host platform with lzo2 statically linked in,
-# and drops it where the JAR expects it:
+# Builds libgplcompression for the host platform by compiling the JNI bindings
+# and the full LZO library sources into a single shared object, and drops it
+# where the JAR expects it:
 #
 #   ${OUTPUT_ROOT}/native/<Java-os.name>-<Java-os.arch>-64/lib/libgplcompression.{so,dylib}
 #
 # The layout and library name match what GPLNativeCodeLoader unpacks at runtime.
+# LZO is compiled in directly (no separate archive, no configure/make/libtool),
+# so the result is self-contained and depends only on the system C library.
 #
 # Environment:
 #   JAVA_HOME     required, provides jni.h
@@ -55,50 +58,40 @@ esac
 PLATFORM_DIR="${PLATFORM_DIR:-${os_name}-${java_arch}-64}"
 
 BUILD_DIR="build/native-build"
-LZO_INSTALL="$REPO_ROOT/$BUILD_DIR/lzo-install"
 OUT_LIB_DIR="$OUTPUT_ROOT/native/$PLATFORM_DIR/lib"
 
 echo "==> Building libgplcompression for $PLATFORM_DIR"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR" "$OUT_LIB_DIR"
 
-# --- Build lzo2 as a static, position-independent archive ------------------
-echo "==> Building static lzo2 from $LZO_TARBALL"
+# Unpack the LZO sources; they are compiled straight into the library below.
 tar xf "$LZO_TARBALL" -C "$BUILD_DIR"
 LZO_SRC="$(find "$BUILD_DIR" -maxdepth 1 -type d -name 'lzo-*' | head -n1)"
-(
-  cd "$LZO_SRC"
-  ./configure --enable-static --disable-shared --with-pic \
-    --prefix="$LZO_INSTALL" CFLAGS="-fPIC -O2" >/dev/null
-  make -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)" >/dev/null
-  make install >/dev/null
-)
 
-# --- Compile and link libgplcompression -----------------------------------
+# JNI bindings plus every LZO compressor/decompressor source file. LZO uses its
+# own portable feature detection unless LZO_HAVE_CONFIG_H is set, so we simply
+# don't define it and skip its autoconf step entirely.
 SRCS=(
   src/main/native/impl/lzo/LzoCompressor.c
   src/main/native/impl/lzo/LzoDecompressor.c
 )
+SRCS+=("$LZO_SRC"/src/*.c)
+
 INCLUDES=(
   "-I${JAVA_HOME}/include"
   "-I${JAVA_HOME}/include/${jni_os}"
   "-I${HEADERS_DIR}"
   "-Isrc/main/native/impl"
-  "-I${LZO_INSTALL}/include"
+  "-I${LZO_SRC}/include"
+  "-I${LZO_SRC}/src"
 )
 OUT="$OUT_LIB_DIR/libgplcompression.$lib_ext"
 
-echo "==> Linking $OUT"
+echo "==> Compiling $((${#SRCS[@]})) source files into $OUT"
 if [ "$os_name" = "Linux" ]; then
-  ${CC:-gcc} -shared -fPIC -O2 "${INCLUDES[@]}" "${SRCS[@]}" \
-    -Wl,--whole-archive "$LZO_INSTALL/lib/liblzo2.a" -Wl,--no-whole-archive \
-    -Wl,--export-dynamic -ldl \
-    -o "$OUT"
+  ${CC:-gcc} -shared -fPIC -O2 "${INCLUDES[@]}" "${SRCS[@]}" -o "$OUT"
 else
-  ${CC:-clang} -dynamiclib -fPIC -O2 "${INCLUDES[@]}" "${SRCS[@]}" \
-    -Wl,-force_load,"$LZO_INSTALL/lib/liblzo2.a" \
-    -Wl,-export_dynamic \
-    -o "$OUT"
+  ${CC:-clang} -dynamiclib -fPIC -O2 "${INCLUDES[@]}" "${SRCS[@]}" -o "$OUT"
 fi
 
 echo "==> Done: $OUT"

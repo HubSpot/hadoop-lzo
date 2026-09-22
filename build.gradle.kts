@@ -129,6 +129,18 @@ tasks.processTestResources {
     mustRunAfter(buildNative)
 }
 
+// In-memory codec round-trip that exercises the native library. Used as the
+// Windows platform smoke test, where the DLL is produced by build-native.ps1
+// (so this task does not depend on buildNative). The native/ resource tree is
+// added to the classpath so GPLNativeCodeLoader can unpack the library.
+tasks.register<JavaExec>("smokeTest") {
+    group = "verification"
+    description = "Loads the native library and round-trips data through the codec."
+    dependsOn(tasks.named("testClasses"))
+    mainClass.set("com.hadoop.compression.lzo.NativeSmokeTest")
+    classpath = sourceSets["test"].runtimeClasspath + files(nativeResourcesDir)
+}
+
 tasks.jar {
     archiveBaseName.set("hadoop-lzo")
     manifest {

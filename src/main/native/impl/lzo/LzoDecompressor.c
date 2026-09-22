@@ -20,60 +20,74 @@
 #include "lzo.h"
 #include <stdlib.h>
 
-// The lzo2 library-handle
-static void *liblzo2 = NULL;
 // lzo2 library version
 static jint liblzo2_version = 0;
 
 #define MSG_LEN 1024
 
-// The lzo 'decompressors'
-static char* lzo_decompressors[] = {
+// The lzo 'decompressors'. Each entry points directly at the statically linked
+// lzo function; the name is kept for error messages. The _asm_ variants are
+// implemented only in i386 assembly, which is not built here, so their pointers
+// are NULL and selecting them raises UnsatisfiedLinkError (as before).
+typedef struct {
+  void *func;
+  const char *name;
+} lzo_decompressor;
+
+// NOTE: this table intentionally mirrors the original, including its defect: the
+// original array is missing a comma after "lzo1x_decompress_asm_fast_safe", so
+// that entry and the following "lzo1y_decompress" concatenate into a single
+// element and every entry after it shifts down by one. The layout (indices,
+// concatenated element, absent lzo1y_decompress) is preserved verbatim and will
+// be corrected in a separate initiative. Entries whose names are not real,
+// linkable symbols (asm-only variants, the concatenated string) have a NULL
+// pointer; selecting them raises UnsatisfiedLinkError, as before.
+static lzo_decompressor lzo_decompressors[] = {
   /** lzo1 decompressors */
-  /* 0 */   "lzo1_decompress", 
-  
-  /** lzo1a compressors */
-  /* 1 */   "lzo1a_decompress",
+  /* 0 */   {(void*)lzo1_decompress, "lzo1_decompress"},
 
-  /** lzo1b compressors */
-  /* 2 */   "lzo1b_decompress", 
-  /* 3 */   "lzo1b_decompress_safe",
+  /** lzo1a decompressors */
+  /* 1 */   {(void*)lzo1a_decompress, "lzo1a_decompress"},
 
-  /** lzo1c compressors */
-  /* 4 */   "lzo1c_decompress",
-  /* 5 */   "lzo1c_decompress_safe",
-  /* 6 */   "lzo1c_decompress_asm",
-  /* 7 */   "lzo1c_decompress_asm_safe",
-  
-  /** lzo1f compressors */
-  /* 8 */   "lzo1f_decompress",
-  /* 9 */   "lzo1f_decompress_safe",
-  /* 10 */  "lzo1f_decompress_asm_fast",
-  /* 11 */  "lzo1f_decompress_asm_fast_safe",
+  /** lzo1b decompressors */
+  /* 2 */   {(void*)lzo1b_decompress, "lzo1b_decompress"},
+  /* 3 */   {(void*)lzo1b_decompress_safe, "lzo1b_decompress_safe"},
 
-  /** lzo1x compressors */
-  /* 12 */  "lzo1x_decompress",
-  /* 13 */  "lzo1x_decompress_safe",
-  /* 14 */  "lzo1x_decompress_asm",
-  /* 15 */  "lzo1x_decompress_asm_safe",
-  /* 16 */  "lzo1x_decompress_asm_fast",
-  /* 17 */  "lzo1x_decompress_asm_fast_safe"
-  
-  /** lzo1y compressors */
-  /* 18 */  "lzo1y_decompress",
-  /* 19 */  "lzo1y_decompress_safe",
-  /* 20 */  "lzo1y_decompress_asm",
-  /* 21 */  "lzo1y_decompress_asm_safe",
-  /* 22 */  "lzo1y_decompress_asm_fast",
-  /* 23 */  "lzo1y_decompress_asm_fast_safe",
+  /** lzo1c decompressors */
+  /* 4 */   {(void*)lzo1c_decompress, "lzo1c_decompress"},
+  /* 5 */   {(void*)lzo1c_decompress_safe, "lzo1c_decompress_safe"},
+  /* 6 */   {NULL, "lzo1c_decompress_asm"},
+  /* 7 */   {NULL, "lzo1c_decompress_asm_safe"},
 
-  /** lzo1z compressors */
-  /* 24 */  "lzo1z_decompress", 
-  /* 25 */  "lzo1z_decompress_safe",
+  /** lzo1f decompressors */
+  /* 8 */   {(void*)lzo1f_decompress, "lzo1f_decompress"},
+  /* 9 */   {(void*)lzo1f_decompress_safe, "lzo1f_decompress_safe"},
+  /* 10 */  {NULL, "lzo1f_decompress_asm_fast"},
+  /* 11 */  {NULL, "lzo1f_decompress_asm_fast_safe"},
 
-  /** lzo2a compressors */
-  /* 26 */  "lzo2a_decompress",
-  /* 27 */  "lzo2a_decompress_safe"
+  /** lzo1x decompressors */
+  /* 12 */  {(void*)lzo1x_decompress, "lzo1x_decompress"},
+  /* 13 */  {(void*)lzo1x_decompress_safe, "lzo1x_decompress_safe"},
+  /* 14 */  {NULL, "lzo1x_decompress_asm"},
+  /* 15 */  {NULL, "lzo1x_decompress_asm_safe"},
+  /* 16 */  {NULL, "lzo1x_decompress_asm_fast"},
+  // Missing comma in the original concatenates the next literal onto this one.
+  /* 17 */  {NULL, "lzo1x_decompress_asm_fast_safe" "lzo1y_decompress"},
+
+  /** lzo1y decompressors */
+  /* 18 */  {(void*)lzo1y_decompress_safe, "lzo1y_decompress_safe"},
+  /* 19 */  {NULL, "lzo1y_decompress_asm"},
+  /* 20 */  {NULL, "lzo1y_decompress_asm_safe"},
+  /* 21 */  {NULL, "lzo1y_decompress_asm_fast"},
+  /* 22 */  {NULL, "lzo1y_decompress_asm_fast_safe"},
+
+  /** lzo1z decompressors */
+  /* 23 */  {(void*)lzo1z_decompress, "lzo1z_decompress"},
+  /* 24 */  {(void*)lzo1z_decompress_safe, "lzo1z_decompress_safe"},
+
+  /** lzo2a decompressors */
+  /* 25 */  {(void*)lzo2a_decompress, "lzo2a_decompress"},
+  /* 26 */  {(void*)lzo2a_decompress_safe, "lzo2a_decompress_safe"}
 };
 
 static jfieldID LzoDecompressor_clazz;
@@ -88,29 +102,6 @@ JNIEXPORT void JNICALL
 Java_com_hadoop_compression_lzo_LzoDecompressor_initIDs(
 	JNIEnv *env, jclass class
 	) {
-  void* lzo_version_ptr = NULL;
-
-#ifdef UNIX
-	// lzo2 is statically linked into this library. Open a handle to our own
-	// image so the existing dlsym-based dispatch resolves those symbols.
-	liblzo2 = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
-	if (!liblzo2) {
-	  char* msg = (char*)malloc(1000);
-	  snprintf(msg, 1000, "%s (%s)!", "Cannot load embedded lzo2", dlerror());
-	  THROW(env, "java/lang/UnsatisfiedLinkError", msg);
-    free(msg);
-	  return;
-	}
-#endif
-
-#ifdef WINDOWS
-  liblzo2 = LoadLibrary(HADOOP_LZO_LIBRARY);
-  if (!liblzo2) {
-    THROW(env, "java/lang/UnsatisfiedLinkError", "Cannot load lzo2.dll");
-    return;
-  }
-#endif
-    
   LzoDecompressor_clazz = (*env)->GetStaticFieldID(env, class, "clazz", 
                                                    "Ljava/lang/Class;");
   LzoDecompressor_finished = (*env)->GetFieldID(env, class, "finished", "Z");
@@ -128,63 +119,30 @@ Java_com_hadoop_compression_lzo_LzoDecompressor_initIDs(
                                               "lzoDecompressor", "J");
 
   // record lzo library version
-#ifdef UNIX
-  LOAD_DYNAMIC_SYMBOL(lzo_version_ptr, env, liblzo2, "lzo_version");
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(lzo_version_t, lzo_version_ptr, env, liblzo2,
-    "lzo_version");
-#endif
-
-  liblzo2_version = (NULL == lzo_version_ptr) ? 0
-    : (jint) ((lzo_version_t)lzo_version_ptr)();
+  liblzo2_version = (jint) lzo_version();
 }
 
 JNIEXPORT void JNICALL
 Java_com_hadoop_compression_lzo_LzoDecompressor_init(
   JNIEnv *env, jobject this, jint decompressor 
   ) {
-  void *lzo_init_func_ptr = NULL;
-  lzo_init_t lzo_init_function = NULL;
-  void *decompressor_func_ptr = NULL;
   int rv = 0;
-  const char *lzo_decompressor_function = lzo_decompressors[decompressor];
- 
-  // Locate the requisite symbols from liblzo2.so
+  void *decompressor_func_ptr = lzo_decompressors[decompressor].func;
 
-  // Initialize the lzo library 
-
-#ifdef UNIX
-  dlerror();                                 // Clear any existing error
-  LOAD_DYNAMIC_SYMBOL(lzo_init_func_ptr, env, liblzo2, "__lzo_init_v2");
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(lzo_init_t, lzo_init_func_ptr, env, liblzo2, "__lzo_init_v2");
-#endif
-
-  lzo_init_function = (lzo_init_t)(lzo_init_func_ptr);
-  rv = lzo_init_function(LZO_VERSION, (int)sizeof(short), (int)sizeof(int), 
-              (int)sizeof(long), (int)sizeof(lzo_uint32), (int)sizeof(lzo_uint), 
-              (int)lzo_sizeof_dict_t, (int)sizeof(char*), (int)sizeof(lzo_voidp),
-              (int)sizeof(lzo_callback_t));
+  // Initialize the lzo library
+  rv = lzo_init();
   if (rv != LZO_E_OK) {
     THROW(env, "Ljava/lang/InternalError", "Could not initialize lzo library!");
     return;
   }
-  
+
+  if (decompressor_func_ptr == NULL) {
+    THROW(env, "java/lang/UnsatisfiedLinkError",
+          lzo_decompressors[decompressor].name);
+    return;
+  }
+
   // Save the decompressor-function into LzoDecompressor_lzoDecompressor
-#ifdef UNIX
-  LOAD_DYNAMIC_SYMBOL(decompressor_func_ptr, env, liblzo2,
-      lzo_decompressor_function);
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(void *, decompressor_func_ptr, env, liblzo2,
-      lzo_decompressor_function);
-#endif
-
   (*env)->SetLongField(env, this, LzoDecompressor_lzoDecompressor,
                        JLONG(decompressor_func_ptr));
 
@@ -213,7 +171,7 @@ Java_com_hadoop_compression_lzo_LzoDecompressor_decompressBytesDirect(
   lzo_decompress_t fptr = NULL;
   int rv = 0;
   char exception_msg[MSG_LEN];
-  const char *lzo_decompressor_function = lzo_decompressors[decompressor];
+  const char *lzo_decompressor_function = lzo_decompressors[decompressor].name;
 
 	// Get members of LzoDecompressor
 	clazz = (*env)->GetStaticObjectField(env, this, 

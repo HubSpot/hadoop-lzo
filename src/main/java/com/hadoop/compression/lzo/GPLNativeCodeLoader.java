@@ -147,7 +147,10 @@ public class GPLNativeCodeLoader {
       LOG.debug("location: " + location);
       return location;
     } else {
-      String location = "/native/" + System.getenv("OS") + "-" + System.getenv("PLATFORM") + "/lib";
+      // os.name on Windows varies by version ("Windows 10", "Windows Server
+      // 2022", ...), so use a fixed prefix to keep the resource path stable.
+      String location = "/native/Windows-" + System.getProperty("os.arch") + "-" +
+          System.getProperty("sun.arch.data.model") + "/lib";
       LOG.debug("location: " + location);
       return location;
     }
