@@ -7,9 +7,6 @@ plugins {
 }
 
 group = "com.hadoop.gplcompression"
-version = (findProperty("version") as String?)
-    ?.takeIf { it.isNotBlank() && it != "unspecified" }
-    ?: file("version").readText().trim()
 
 val hadoopVersion = "3.3.1"
 
@@ -54,11 +51,10 @@ sourceSets {
     }
 }
 
-// Reproduces the build metadata LzoCodec reads from the classpath.
+// Reproduces the build metadata LzoCodec reads from the classpath. This carries
+// the git revision for the load-time log line, not an artifact version.
 val generateBuildProperties = tasks.register("generateBuildProperties") {
     val outputFile = generatedResourcesDir.get().file("hadoop-lzo-build.properties").asFile
-    val projectVersion = version.toString()
-    inputs.property("version", projectVersion)
     outputs.file(outputFile)
     doLast {
         fun capture(vararg cmd: String): String = try {
@@ -85,7 +81,6 @@ val generateBuildProperties = tasks.register("generateBuildProperties") {
                 appendLine("build_time=$buildTime")
                 appendLine("build_revision=$revision")
                 appendLine("build_author=$author")
-                appendLine("build_version=$projectVersion")
                 appendLine("build_os=$buildOs")
             }
         )
@@ -105,6 +100,10 @@ val buildNative = tasks.register<Exec>("buildNative") {
 
 tasks.processResources {
     dependsOn(generateBuildProperties)
+    // jar intentionally does not depend on buildNative (the package job supplies
+    // native libs via downloaded artifacts). But when buildNative IS part of the
+    // same invocation, resources must be copied after it so the libs are packed.
+    mustRunAfter(buildNative)
 }
 
 tasks.test {
@@ -143,10 +142,12 @@ tasks.register<JavaExec>("smokeTest") {
 
 tasks.jar {
     archiveBaseName.set("hadoop-lzo")
+    // The artifact carries no embedded version; releases are identified by their
+    // git tag, not by anything inside the jar.
+    archiveVersion.set("")
     manifest {
         attributes(
-            "Implementation-Title" to "hadoop-lzo",
-            "Implementation-Version" to project.version
+            "Implementation-Title" to "hadoop-lzo"
         )
     }
 }
