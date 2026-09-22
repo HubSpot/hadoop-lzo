@@ -15,10 +15,17 @@ You can read more about Hadoop, LZO, and how we're using it at Twitter at [https
 
 ### Usage
 
-This is HubSpot's fork of hadoop-lzo. We publish JARs that contain native code builds for the following platforms:
+We publish JARs that contain native code builds for the following platforms:
 - Linux x86_64
 - Linux aarch64
 - MacOS x86_64
 - MacOS aarch64
+- Windows x86_64
 
 The entire LZO library, plus Java bindings, are provided in the JARs, so the only system dependency is libc.
+
+Unlike other forks of hadoop-lzo, **you can use our pre-built JARs on any of our supported platforms and it should Just Work.**
+
+### Versioning
+
+Version numbers are based on the LZO library version, with this wrapper library's version appended. For example, `2.10-1` is the first wrapper version around LZO 2.10.
