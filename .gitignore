@@ -25,3 +25,5 @@ out/
 *.iml
 *.iws
 /target
+.gradle/
+.DS_Store

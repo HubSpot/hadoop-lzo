@@ -91,11 +91,12 @@ Java_com_hadoop_compression_lzo_LzoDecompressor_initIDs(
   void* lzo_version_ptr = NULL;
 
 #ifdef UNIX
-	// Load liblzo2.so
-	liblzo2 = dlopen(HADOOP_LZO_LIBRARY, RTLD_LAZY | RTLD_GLOBAL);
+	// lzo2 is statically linked into this library. Open a handle to our own
+	// image so the existing dlsym-based dispatch resolves those symbols.
+	liblzo2 = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
 	if (!liblzo2) {
 	  char* msg = (char*)malloc(1000);
-	  snprintf(msg, 1000, "%s (%s)!", "Cannot load " HADOOP_LZO_LIBRARY, dlerror());
+	  snprintf(msg, 1000, "%s (%s)!", "Cannot load embedded lzo2", dlerror());
 	  THROW(env, "java/lang/UnsatisfiedLinkError", msg);
     free(msg);
 	  return;
