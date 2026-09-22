@@ -34,14 +34,8 @@ typedef struct {
   const char *name;
 } lzo_decompressor;
 
-// NOTE: this table intentionally mirrors the original, including its defect: the
-// original array is missing a comma after "lzo1x_decompress_asm_fast_safe", so
-// that entry and the following "lzo1y_decompress" concatenate into a single
-// element and every entry after it shifts down by one. The layout (indices,
-// concatenated element, absent lzo1y_decompress) is preserved verbatim and will
-// be corrected in a separate initiative. Entries whose names are not real,
-// linkable symbols (asm-only variants, the concatenated string) have a NULL
-// pointer; selecting them raises UnsatisfiedLinkError, as before.
+// The index of each entry matches the ordinal of the corresponding
+// CompressionStrategy value in LzoDecompressor.java.
 static lzo_decompressor lzo_decompressors[] = {
   /** lzo1 decompressors */
   /* 0 */   {(void*)lzo1_decompress, "lzo1_decompress"},
@@ -71,23 +65,23 @@ static lzo_decompressor lzo_decompressors[] = {
   /* 14 */  {NULL, "lzo1x_decompress_asm"},
   /* 15 */  {NULL, "lzo1x_decompress_asm_safe"},
   /* 16 */  {NULL, "lzo1x_decompress_asm_fast"},
-  // Missing comma in the original concatenates the next literal onto this one.
-  /* 17 */  {NULL, "lzo1x_decompress_asm_fast_safe" "lzo1y_decompress"},
+  /* 17 */  {NULL, "lzo1x_decompress_asm_fast_safe"},
 
   /** lzo1y decompressors */
-  /* 18 */  {(void*)lzo1y_decompress_safe, "lzo1y_decompress_safe"},
-  /* 19 */  {NULL, "lzo1y_decompress_asm"},
-  /* 20 */  {NULL, "lzo1y_decompress_asm_safe"},
-  /* 21 */  {NULL, "lzo1y_decompress_asm_fast"},
-  /* 22 */  {NULL, "lzo1y_decompress_asm_fast_safe"},
+  /* 18 */  {(void*)lzo1y_decompress, "lzo1y_decompress"},
+  /* 19 */  {(void*)lzo1y_decompress_safe, "lzo1y_decompress_safe"},
+  /* 20 */  {NULL, "lzo1y_decompress_asm"},
+  /* 21 */  {NULL, "lzo1y_decompress_asm_safe"},
+  /* 22 */  {NULL, "lzo1y_decompress_asm_fast"},
+  /* 23 */  {NULL, "lzo1y_decompress_asm_fast_safe"},
 
   /** lzo1z decompressors */
-  /* 23 */  {(void*)lzo1z_decompress, "lzo1z_decompress"},
-  /* 24 */  {(void*)lzo1z_decompress_safe, "lzo1z_decompress_safe"},
+  /* 24 */  {(void*)lzo1z_decompress, "lzo1z_decompress"},
+  /* 25 */  {(void*)lzo1z_decompress_safe, "lzo1z_decompress_safe"},
 
   /** lzo2a decompressors */
-  /* 25 */  {(void*)lzo2a_decompress, "lzo2a_decompress"},
-  /* 26 */  {(void*)lzo2a_decompress_safe, "lzo2a_decompress_safe"}
+  /* 26 */  {(void*)lzo2a_decompress, "lzo2a_decompress"},
+  /* 27 */  {(void*)lzo2a_decompress_safe, "lzo2a_decompress_safe"}
 };
 
 static jfieldID LzoDecompressor_clazz;
