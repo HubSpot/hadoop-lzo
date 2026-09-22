@@ -150,3 +150,18 @@ tasks.jar {
         )
     }
 }
+
+// Same round-trip as smokeTest, but against the assembled JAR rather than the
+// exploded build outputs: the classpath is the packaged jar plus only the
+// external dependencies (not the project's own main classes/resources). This
+// validates the real artifact - its native/ resource layout, manifest, and
+// build.properties - the way a consumer would load it.
+tasks.register<JavaExec>("smokeTestJar") {
+    group = "verification"
+    description = "Runs the codec round-trip against the packaged JAR."
+    dependsOn(tasks.jar, tasks.named("testClasses"))
+    mainClass.set("com.hadoop.compression.lzo.NativeSmokeTest")
+    classpath = files(tasks.jar.flatMap { it.archiveFile }) +
+        sourceSets["test"].output +
+        configurations["testRuntimeClasspath"]
+}
