@@ -4,9 +4,13 @@ import java.util.TimeZone
 
 plugins {
     java
+    `maven-publish`
 }
 
 group = "com.hadoop.gplcompression"
+// Unversioned by default; CI supplies -Pversion from the git tag on releases.
+version = (findProperty("version") as String?)?.takeIf { it.isNotBlank() }
+    ?: Project.DEFAULT_VERSION
 
 val hadoopVersion = "3.3.1"
 
@@ -142,13 +146,41 @@ tasks.register<JavaExec>("smokeTest") {
 
 tasks.jar {
     archiveBaseName.set("hadoop-lzo")
-    // The artifact carries no embedded version; releases are identified by their
-    // git tag, not by anything inside the jar.
-    archiveVersion.set("")
+    // Unversioned filename unless a version was supplied (e.g. from the tag).
+    if (project.version == Project.DEFAULT_VERSION) {
+        archiveVersion.set("")
+    }
     manifest {
         attributes(
             "Implementation-Title" to "hadoop-lzo"
         )
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            pom {
+                name.set("hadoop-lzo")
+                description.set(
+                    "Splittable LZO compression/decompression codecs and utilities for Hadoop."
+                )
+                url.set("https://github.com/HubSpot/hadoop-lzo")
+                licenses {
+                    license {
+                        name.set("GNU General Public License, Version 3")
+                        url.set("https://www.gnu.org/licenses/gpl-3.0.txt")
+                        distribution.set("repo")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/HubSpot/hadoop-lzo")
+                    connection.set("scm:git:https://github.com/HubSpot/hadoop-lzo.git")
+                    developerConnection.set("scm:git:git@github.com:HubSpot/hadoop-lzo.git")
+                }
+            }
+        }
     }
 }
 

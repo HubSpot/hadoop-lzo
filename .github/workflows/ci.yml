@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: temurin
 
       # Generates the JNI headers that the native sources compile against.
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: temurin
           architecture: x64
       - uses: ilammy/msvc-dev-cmd@v1
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: temurin
       - name: Test
         run: ./gradlew test --console=plain
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: temurin
 
       - name: Collect native libraries
@@ -142,13 +142,24 @@ jobs:
       - name: Show assembled native tree
         run: find build/native-resources/native -type f
 
+      # Releases are versioned by their git tag (e.g. v2.10-1 -> 2.10-1); other
+      # builds stay unversioned.
+      - name: Derive version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
       # jar is deliberately decoupled from the native build, so this packages
       # only the downloaded artifacts without invoking a compiler. smokeTestJar
       # then loads the codec from the assembled jar (Linux x86_64 entry) and
       # round-trips data, validating the native/ resource layout, manifest, and
       # build.properties as a consumer sees them.
       - name: Package JAR and smoke test
-        run: ./gradlew jar smokeTestJar --console=plain
+        run: |
+          ARGS=""
+          if [ -n "${RELEASE_VERSION:-}" ]; then
+            ARGS="-Pversion=${RELEASE_VERSION}"
+          fi
+          ./gradlew jar smokeTestJar $ARGS --console=plain
 
       - uses: actions/upload-artifact@v4
         with:
