@@ -47,39 +47,7 @@
  * Unix definitions
  */
 #ifdef UNIX
-#include <config.h>
-#include <dlfcn.h>
 #include <jni.h>
-
-/** 
- * A helper function to dlsym a 'symbol' from a given library-handle. 
- * 
- * @param env jni handle to report contingencies.
- * @param handle handle to the dlopen'ed library.
- * @param symbol symbol to load.
- * @return returns the address where the symbol is loaded in memory, 
- *         <code>NULL</code> on error.
- */
-static void *do_dlsym(JNIEnv *env, void *handle, const char *symbol) {
-  if (!env || !handle || !symbol) {
-  	THROW(env, "java/lang/InternalError", NULL);
-  	return NULL;
-  }
-  char *error = NULL;
-  dlerror(); // clear error
-  void *func_ptr = dlsym(handle, symbol);
-  if ((func_ptr == NULL) &&
-      ((error = dlerror()) != NULL)) {
-    THROW(env, "java/lang/UnsatisfiedLinkError", error);
-  }
-  return func_ptr;
-}
-
-/* A helper macro to dlsym the requisite dynamic symbol and bail-out on error. */
-#define LOAD_DYNAMIC_SYMBOL(func_ptr, env, handle, symbol) \
-  if ((func_ptr = do_dlsym(env, handle, symbol)) == NULL) { \
-    return; \
-  }
 #endif
 // Unix part end
 
@@ -100,37 +68,6 @@ static void *do_dlsym(JNIEnv *env, void *handle, const char *symbol) {
 
 #define snprintf(a, b ,c, d) _snprintf_s((a), (b), _TRUNCATE, (c), (d))
 
-/* A helper macro to dlsym the requisite dynamic symbol and bail-out on error. */
-#define LOAD_DYNAMIC_SYMBOL(func_type, func_ptr, env, handle, symbol) \
-  if ((func_ptr = (func_type) do_dlsym(env, handle, symbol)) == NULL) { \
-    return; \
-  }
-
-/**
- * A helper function to dynamic load a 'symbol' from a given library-handle.
- *
- * @param env jni handle to report contingencies.
- * @param handle handle to the dynamic library.
- * @param symbol symbol to load.
- * @return returns the address where the symbol is loaded in memory,
- *         <code>NULL</code> on error.
- */
-static FARPROC WINAPI do_dlsym(JNIEnv *env, HMODULE handle, LPCSTR symbol) {
-  DWORD dwErrorCode = ERROR_SUCCESS;
-  FARPROC func_ptr = NULL;
-
-  if (!env || !handle || !symbol) {
-    THROW(env, "java/lang/InternalError", NULL);
-    return NULL;
-  }
-
-  func_ptr = GetProcAddress(handle, symbol);
-  if (func_ptr == NULL)
-  {
-    THROW(env, "java/lang/UnsatisfiedLinkError", symbol);
-  }
-  return func_ptr;
-}
 #endif
 // Windows part end
 

@@ -21,14 +21,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-// The lzo2 library-handle
-static void *liblzo2 = NULL;
 // lzo2 library version
 static jint liblzo2_version = 0;
 
-// The lzo 'compressors'
+// The lzo 'compressors'. Each entry points directly at the statically linked
+// lzo function; the name is kept for error messages and to select the
+// level-taking call path in compressBytesDirect.
 typedef struct {
-  const char *function;           // The compression function
+  void *func;                     // The compression function
+  const char *name;               // Its symbol name
   int wrkmem;                     // The 'working memory' needed
   int compression_level;          // Compression level if required;
                                   // else UNDEFINED_COMPRESSION_LEVEL
@@ -37,68 +38,69 @@ typedef struct {
 #define UNDEFINED_COMPRESSION_LEVEL -999
 #define MSG_LEN 32
 
-// Default compression level used when user supplies no value.
 static lzo_compressor lzo_compressors[] = {
   /** lzo1 compressors */
-  /* 0 */   {"lzo1_compress", LZO1_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 1 */   {"lzo1_99_compress", LZO1_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 0 */   {(void*)lzo1_compress, "lzo1_compress", LZO1_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 1 */   {(void*)lzo1_99_compress, "lzo1_99_compress", LZO1_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1a compressors */
-  /* 2 */   {"lzo1a_compress", LZO1A_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 3 */   {"lzo1a_99_compress", LZO1A_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 2 */   {(void*)lzo1a_compress, "lzo1a_compress", LZO1A_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 3 */   {(void*)lzo1a_99_compress, "lzo1a_99_compress", LZO1A_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1b compressors */
-  /* 4 */   {"lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_DEFAULT_COMPRESSION}, 
-  /* 5 */   {"lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_BEST_SPEED}, 
-  /* 6 */   {"lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_BEST_COMPRESSION}, 
-  /* 7 */   {"lzo1b_1_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 8 */   {"lzo1b_2_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 9 */   {"lzo1b_3_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 10 */  {"lzo1b_4_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 11 */  {"lzo1b_5_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 12 */  {"lzo1b_6_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 13 */  {"lzo1b_7_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 14 */  {"lzo1b_8_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 15 */  {"lzo1b_9_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 16 */  {"lzo1b_99_compress", LZO1B_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 17 */  {"lzo1b_999_compress", LZO1B_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  
+  /* 4 */   {(void*)lzo1b_compress, "lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_DEFAULT_COMPRESSION},
+  /* 5 */   {(void*)lzo1b_compress, "lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_BEST_SPEED},
+  /* 6 */   {(void*)lzo1b_compress, "lzo1b_compress", LZO1B_MEM_COMPRESS, LZO1B_BEST_COMPRESSION},
+  /* 7 */   {(void*)lzo1b_1_compress, "lzo1b_1_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 8 */   {(void*)lzo1b_2_compress, "lzo1b_2_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 9 */   {(void*)lzo1b_3_compress, "lzo1b_3_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 10 */  {(void*)lzo1b_4_compress, "lzo1b_4_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 11 */  {(void*)lzo1b_5_compress, "lzo1b_5_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 12 */  {(void*)lzo1b_6_compress, "lzo1b_6_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 13 */  {(void*)lzo1b_7_compress, "lzo1b_7_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 14 */  {(void*)lzo1b_8_compress, "lzo1b_8_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 15 */  {(void*)lzo1b_9_compress, "lzo1b_9_compress", LZO1B_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 16 */  {(void*)lzo1b_99_compress, "lzo1b_99_compress", LZO1B_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 17 */  {(void*)lzo1b_999_compress, "lzo1b_999_compress", LZO1B_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+
   /** lzo1c compressors */
-  /* 18 */  {"lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_DEFAULT_COMPRESSION}, 
-  /* 19 */  {"lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_BEST_SPEED}, 
-  /* 20 */  {"lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_BEST_COMPRESSION}, 
-  /* 21 */  {"lzo1c_1_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 22 */  {"lzo1c_2_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 23 */  {"lzo1c_3_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 24 */  {"lzo1c_4_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 25 */  {"lzo1c_5_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 26 */  {"lzo1c_6_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 27 */  {"lzo1c_7_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 28 */  {"lzo1c_8_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 29 */  {"lzo1c_9_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 30 */  {"lzo1c_99_compress", LZO1C_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  /* 31 */  {"lzo1c_999_compress", LZO1C_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL}, 
-  
+  /* 18 */  {(void*)lzo1c_compress, "lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_DEFAULT_COMPRESSION},
+  /* 19 */  {(void*)lzo1c_compress, "lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_BEST_SPEED},
+  /* 20 */  {(void*)lzo1c_compress, "lzo1c_compress", LZO1C_MEM_COMPRESS, LZO1C_BEST_COMPRESSION},
+  /* 21 */  {(void*)lzo1c_1_compress, "lzo1c_1_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 22 */  {(void*)lzo1c_2_compress, "lzo1c_2_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 23 */  {(void*)lzo1c_3_compress, "lzo1c_3_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 24 */  {(void*)lzo1c_4_compress, "lzo1c_4_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 25 */  {(void*)lzo1c_5_compress, "lzo1c_5_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 26 */  {(void*)lzo1c_6_compress, "lzo1c_6_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 27 */  {(void*)lzo1c_7_compress, "lzo1c_7_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 28 */  {(void*)lzo1c_8_compress, "lzo1c_8_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 29 */  {(void*)lzo1c_9_compress, "lzo1c_9_compress", LZO1C_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 30 */  {(void*)lzo1c_99_compress, "lzo1c_99_compress", LZO1C_99_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 31 */  {(void*)lzo1c_999_compress, "lzo1c_999_compress", LZO1C_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+
   /** lzo1f compressors */
-  /* 32 */  {"lzo1f_1_compress", LZO1F_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 33 */  {"lzo1f_999_compress", LZO1F_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 32 */  {(void*)lzo1f_1_compress, "lzo1f_1_compress", LZO1F_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 33 */  {(void*)lzo1f_999_compress, "lzo1f_999_compress", LZO1F_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1x compressors */
-  /* 34 */  {"lzo1x_1_compress", LZO1X_1_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 35 */  {"lzo1x_11_compress", LZO1X_1_11_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 36 */  {"lzo1x_12_compress", LZO1X_1_12_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 37 */  {"lzo1x_15_compress", LZO1X_1_15_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 38 */  {"lzo1x_999_compress", LZO1X_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 34 */  {(void*)lzo1x_1_compress, "lzo1x_1_compress", LZO1X_1_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  // These three names do not match any lzo symbol; left unresolved to preserve
+  // the original behavior (selecting them raises UnsatisfiedLinkError).
+  /* 35 */  {NULL, "lzo1x_11_compress", LZO1X_1_11_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 36 */  {NULL, "lzo1x_12_compress", LZO1X_1_12_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 37 */  {NULL, "lzo1x_15_compress", LZO1X_1_15_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 38 */  {(void*)lzo1x_999_compress, "lzo1x_999_compress", LZO1X_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1y compressors */
-  /* 39 */  {"lzo1y_1_compress", LZO1Y_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 40 */  {"lzo1y_999_compress", LZO1Y_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 39 */  {(void*)lzo1y_1_compress, "lzo1y_1_compress", LZO1Y_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 40 */  {(void*)lzo1y_999_compress, "lzo1y_999_compress", LZO1Y_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1z compressors */
-  /* 41 */  {"lzo1z_999_compress", LZO1Z_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 41 */  {(void*)lzo1z_999_compress, "lzo1z_999_compress", LZO1Z_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo2a compressors */
-  /* 42 */  {"lzo2a_999_compress", LZO2A_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 42 */  {(void*)lzo2a_999_compress, "lzo2a_999_compress", LZO2A_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 };
 
 // The second lzo* compressor prototype - this really should be in lzoconf.h!
@@ -124,27 +126,6 @@ JNIEXPORT void JNICALL
 Java_com_hadoop_compression_lzo_LzoCompressor_initIDs(
 	JNIEnv *env, jclass class
 	) {
-  void* lzo_version_ptr = NULL;
-
-#ifdef UNIX
-	// Load liblzo2.so
-	liblzo2 = dlopen(HADOOP_LZO_LIBRARY, RTLD_LAZY | RTLD_GLOBAL);
-	if (!liblzo2) {
-	  char* msg = (char*)malloc(1000);
-	  snprintf(msg, 1000, "%s (%s)!", "Cannot load " HADOOP_LZO_LIBRARY, dlerror());
-	  THROW(env, "java/lang/UnsatisfiedLinkError", msg);
-	  return;
-	}
-#endif
-
-#ifdef WINDOWS
-  liblzo2 = LoadLibrary(HADOOP_LZO_LIBRARY);
-  if (!liblzo2) {
-    THROW(env, "java/lang/UnsatisfiedLinkError", "Cannot load lzo2.dll");
-    return;
-  }
-#endif
-    
   LzoCompressor_clazz = (*env)->GetStaticFieldID(env, class, "clazz", 
                                                  "Ljava/lang/Class;");
   LzoCompressor_finish = (*env)->GetFieldID(env, class, "finish", "Z");
@@ -172,79 +153,38 @@ Java_com_hadoop_compression_lzo_LzoCompressor_initIDs(
     "lzoCompressLevelFunc", "J");
 
   // record lzo library version
-#ifdef UNIX
-  LOAD_DYNAMIC_SYMBOL(lzo_version_ptr, env, liblzo2, "lzo_version");
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(lzo_version_t, lzo_version_ptr, env, liblzo2,
-    "lzo_version");
-#endif
-
-  liblzo2_version = (NULL == lzo_version_ptr) ? 0
-    : (jint) ((lzo_version_t)lzo_version_ptr)();
+  liblzo2_version = (jint) lzo_version();
 }
 
 JNIEXPORT void JNICALL
 Java_com_hadoop_compression_lzo_LzoCompressor_init(
   JNIEnv *env, jobject this, jint compressor 
   ) {
-  void *lzo_init_func_ptr = NULL;
-  lzo_init_t lzo_init_function = NULL;
-  void *compressor_func_ptr = NULL;
-  void *compress_level_func_ptr = NULL;
   int rv = 0;
-  const char *lzo_compressor_function = lzo_compressors[compressor].function;
- 
-  // Locate the requisite symbols from liblzo2.so
+  void *compressor_func_ptr = lzo_compressors[compressor].func;
 
-  // Initialize the lzo library 
-
-#ifdef UNIX
-  dlerror();                                 // Clear any existing error
-  LOAD_DYNAMIC_SYMBOL(lzo_init_func_ptr, env, liblzo2, "__lzo_init_v2");
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(lzo_init_t, lzo_init_func_ptr, env, liblzo2,
-    "__lzo_init_v2");
-#endif
-
-  lzo_init_function = (lzo_init_t)(lzo_init_func_ptr);
-  rv = lzo_init_function(LZO_VERSION, (int)sizeof(short), (int)sizeof(int), 
-              (int)sizeof(long), (int)sizeof(lzo_uint32), (int)sizeof(lzo_uint), 
-              (int)lzo_sizeof_dict_t, (int)sizeof(char*), (int)sizeof(lzo_voidp),
-              (int)sizeof(lzo_callback_t));
+  // Initialize the lzo library
+  rv = lzo_init();
   if (rv != LZO_E_OK) {
     THROW(env, "Ljava/lang/InternalError", "Could not initialize lzo library!");
     return;
   }
-  
+
+  if (compressor_func_ptr == NULL) {
+    THROW(env, "java/lang/UnsatisfiedLinkError",
+          lzo_compressors[compressor].name);
+    return;
+  }
+
   // Save the compressor-function into LzoCompressor_lzoCompressor
-
-#ifdef UNIX
-  LOAD_DYNAMIC_SYMBOL(compressor_func_ptr, env, liblzo2, lzo_compressor_function);
-  dlerror();                                 // Clear any existing error
-  LOAD_DYNAMIC_SYMBOL(compress_level_func_ptr, env, liblzo2,
-    "lzo1x_999_compress_level");
-#endif
-
-#ifdef WINDOWS
-  LOAD_DYNAMIC_SYMBOL(void *, compressor_func_ptr, env, liblzo2,
-    lzo_compressor_function);
-  LOAD_DYNAMIC_SYMBOL(void *, compress_level_func_ptr, env, liblzo2,
-    "lzo1x_999_compress_level");
-#endif
-
   (*env)->SetLongField(env, this, LzoCompressor_lzoCompressor,
                        JLONG(compressor_func_ptr));
-  
-  // Save the compressor-function into LzoCompressor_lzoCompressor
+
   (*env)->SetIntField(env, this, LzoCompressor_workingMemoryBufLen,
                       lzo_compressors[compressor].wrkmem);
 
   (*env)->SetLongField(env, this, LzoCompressor_lzoCompressLevelFunc,
-                       JLONG(compress_level_func_ptr));
+                       JLONG((void*)lzo1x_999_compress_level));
   return;
 }
 
@@ -274,7 +214,7 @@ Java_com_hadoop_compression_lzo_LzoCompressor_compressBytesDirect(
   lzo_uint no_compressed_bytes = 0;
   int rv = 0;
   char exception_msg[MSG_LEN];
-  const char *lzo_compressor_function = lzo_compressors[compressor].function;
+  const char *lzo_compressor_function = lzo_compressors[compressor].name;
 
 	// Get members of LzoCompressor
     clazz = (*env)->GetStaticObjectField(env, this, 
