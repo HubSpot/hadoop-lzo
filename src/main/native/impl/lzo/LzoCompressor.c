@@ -85,11 +85,9 @@ static lzo_compressor lzo_compressors[] = {
 
   /** lzo1x compressors */
   /* 34 */  {(void*)lzo1x_1_compress, "lzo1x_1_compress", LZO1X_1_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  // These three names do not match any lzo symbol; left unresolved to preserve
-  // the original behavior (selecting them raises UnsatisfiedLinkError).
-  /* 35 */  {NULL, "lzo1x_11_compress", LZO1X_1_11_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 36 */  {NULL, "lzo1x_12_compress", LZO1X_1_12_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
-  /* 37 */  {NULL, "lzo1x_15_compress", LZO1X_1_15_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 35 */  {(void*)lzo1x_1_11_compress, "lzo1x_1_11_compress", LZO1X_1_11_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 36 */  {(void*)lzo1x_1_12_compress, "lzo1x_1_12_compress", LZO1X_1_12_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
+  /* 37 */  {(void*)lzo1x_1_15_compress, "lzo1x_1_15_compress", LZO1X_1_15_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
   /* 38 */  {(void*)lzo1x_999_compress, "lzo1x_999_compress", LZO1X_999_MEM_COMPRESS, UNDEFINED_COMPRESSION_LEVEL},
 
   /** lzo1y compressors */
