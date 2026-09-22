@@ -225,7 +225,7 @@ public class LzoCodec implements Configurable, CompressionCodec {
     assert conf != null : "Configuration cannot be null!";
     return LzoDecompressor.CompressionStrategy.valueOf(
           conf.get(LZO_DECOMPRESSOR_KEY,
-            LzoDecompressor.CompressionStrategy.LZO1X.name()));
+            LzoDecompressor.CompressionStrategy.LZO1X_SAFE.name()));
   }
 
   static int getCompressionLevel(Configuration conf) {
