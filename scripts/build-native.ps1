@@ -2,19 +2,19 @@
 # full LZO library sources into a single DLL with MSVC (cl.exe), and drops it
 # where the JAR expects it:
 #
-#   $OutputRoot/native/Windows-<arch>-64/lib/gplcompression.dll
+#   build/native-resources/native/Windows-<arch>-64/lib/gplcompression.dll
 #
 # The layout and library name match what GPLNativeCodeLoader unpacks at runtime.
 # LZO is compiled in directly, so the DLL depends only on the system libraries.
 #
-# cl.exe must be on PATH (use ilammy/msvc-dev-cmd in CI).
+# cl.exe must be on PATH (use ilammy/msvc-dev-cmd in CI). The architecture cl.exe
+# targets is whichever the active MSVC environment selects, so TARGET_ARCH here
+# only names the output directory: pick the matching msvc-dev-cmd arch (amd64 for
+# x64, amd64_arm64 to cross-compile arm64) to agree with it.
 #
 # Environment:
-#   JAVA_HOME     required, provides jni.h and win32/jni_md.h
-#   HEADERS_DIR   JNI headers from `gradlew compileJava` (default build/native-headers)
-#   OUTPUT_ROOT   where the native/ resource tree is written (default build/native-resources)
-#   PLATFORM_DIR  override the resource directory name (default Windows-amd64-64)
-#   LZO_TARBALL   lzo source tarball (default provided/lzo-2.10.tar.gz)
+#   JAVA_HOME    required, provides jni.h and win32/jni_md.h
+#   TARGET_ARCH  output architecture, amd64 or arm64 (default: amd64)
 
 $ErrorActionPreference = "Stop"
 
@@ -22,10 +22,19 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
 
 if (-not $env:JAVA_HOME) { throw "JAVA_HOME must be set" }
-$HeadersDir  = if ($env:HEADERS_DIR)  { $env:HEADERS_DIR }  else { "build/native-headers" }
-$OutputRoot  = if ($env:OUTPUT_ROOT)  { $env:OUTPUT_ROOT }  else { "build/native-resources" }
-$LzoTarball  = if ($env:LZO_TARBALL)  { $env:LZO_TARBALL }  else { "provided/lzo-2.10.tar.gz" }
-$PlatformDir = if ($env:PLATFORM_DIR) { $env:PLATFORM_DIR } else { "Windows-amd64-64" }
+$HeadersDir  = "build/native-headers"
+$OutputRoot  = "build/native-resources"
+$LzoTarball  = "provided/lzo-2.10.tar.gz"
+
+# Map the target to the os.arch value Java reports on Windows, which names the
+# resource directory GPLNativeCodeLoader reads at runtime.
+$TargetArch = if ($env:TARGET_ARCH) { $env:TARGET_ARCH } else { "amd64" }
+switch ($TargetArch) {
+  { $_ -in @("amd64", "x64", "x86_64") } { $JavaArch = "amd64" }
+  { $_ -in @("arm64", "aarch64") }       { $JavaArch = "aarch64" }
+  default { throw "Unsupported Windows target arch: $TargetArch" }
+}
+$PlatformDir = "Windows-$JavaArch-64"
 
 if (-not (Test-Path $HeadersDir)) {
   throw "JNI headers not found in $HeadersDir. Run './gradlew compileJava' first."
