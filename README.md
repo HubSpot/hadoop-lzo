@@ -18,9 +18,14 @@ You can read more about Hadoop, LZO, and how we're using it at Twitter at [https
 We publish JARs that contain native code builds for the following platforms:
 - Linux x86_64
 - Linux aarch64
+- Linux ppc64
+- Linux ppc64le
+- Linux s390x
+- Linux riscv64
 - MacOS x86_64
 - MacOS aarch64
 - Windows x86_64
+- Windows arm64
 
 The entire LZO library, plus Java bindings, are provided in the JARs, so the only system dependency is libc.
 

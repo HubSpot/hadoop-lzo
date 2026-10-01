@@ -97,8 +97,6 @@ val generateBuildProperties = tasks.register("generateBuildProperties") {
 val buildNative = tasks.register<Exec>("buildNative") {
     dependsOn(tasks.compileJava)
     workingDir = projectDir
-    environment("HEADERS_DIR", nativeHeadersDir.get().asFile.absolutePath)
-    environment("OUTPUT_ROOT", nativeResourcesDir.get().asFile.absolutePath)
     commandLine("./scripts/build-native.sh")
 }
 

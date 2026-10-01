@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Each job runs on a throwaway runner, so the Gradle daemon is never reused and
+# its startup is pure overhead. Run every ./gradlew invocation without it.
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
 jobs:
   # Build libgplcompression natively on each target platform. lzo2 is statically
   # linked in, so each artifact is self-contained. One artifact per platform,
@@ -41,8 +46,6 @@ jobs:
         run: ./gradlew compileJava --console=plain
 
       - name: Build native library
-        env:
-          PLATFORM_DIR: ${{ matrix.platform }}
         run: ./scripts/build-native.sh
 
       - name: Inspect (Linux)
@@ -69,10 +72,96 @@ jobs:
           path: build/native-resources
           if-no-files-found: error
 
+  # Cross-compile the Linux library for architectures with no GitHub-hosted
+  # runner. clang targets each triple against its GNU sysroot; the output can't
+  # be executed on the x86_64 runner, so the ELF header is verified instead of
+  # running a smoke test. Each leg uploads the same native-<platform> artifact
+  # shape as the host-native legs, so the package job picks them up unchanged.
+  cross:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: ppc64
+            platform: Linux-ppc64-64
+            triple: powerpc64-linux-gnu
+            cross_pkg: gcc-powerpc64-linux-gnu libc6-dev-ppc64-cross
+            elf_machine: PowerPC64
+            elf_data: big endian
+          - arch: ppc64le
+            platform: Linux-ppc64le-64
+            triple: powerpc64le-linux-gnu
+            cross_pkg: gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross
+            elf_machine: PowerPC64
+            elf_data: little endian
+          - arch: s390x
+            platform: Linux-s390x-64
+            triple: s390x-linux-gnu
+            cross_pkg: gcc-s390x-linux-gnu libc6-dev-s390x-cross
+            elf_machine: IBM S/390
+            elf_data: big endian
+          - arch: riscv64
+            platform: Linux-riscv64-64
+            triple: riscv64-linux-gnu
+            cross_pkg: gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
+            elf_machine: RISC-V
+            elf_data: little endian
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Install clang and cross toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang ${{ matrix.cross_pkg }}
+
+      - name: Generate JNI headers
+        run: ./gradlew compileJava --console=plain
+
+      - name: Build native library
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: ./scripts/build-native.sh
+
+      - name: Verify ELF architecture
+        run: |
+          f=build/native-resources/native/${{ matrix.platform }}/lib/libgplcompression.so
+          file "$f"
+          readelf -h "$f"
+          readelf -h "$f" | grep -q "${{ matrix.elf_machine }}"
+          readelf -h "$f" | grep -qi "${{ matrix.elf_data }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: build/native-resources
+          if-no-files-found: error
+
   # Windows builds with MSVC and compiles LZO straight into gplcompression.dll.
-  # The full Hadoop JUnit suite needs winutils/hadoop.dll, so this leg runs an
-  # in-memory codec smoke test instead.
+  # The x64 leg is native and runs an in-memory codec smoke test (the full Hadoop
+  # JUnit suite needs winutils/hadoop.dll). The arm64 leg cross-compiles with the
+  # ARM64 MSVC toolset on the x64 runner, so it can't run; its DLL machine type
+  # is inspected instead. Both upload the same native-<platform> artifact shape.
   native-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: Windows-amd64-64
+            msvc_arch: amd64
+            machine: x64
+            smoke: true
+          - arch: arm64
+            platform: Windows-aarch64-64
+            msvc_arch: amd64_arm64
+            machine: ARM64
+            smoke: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,27 +172,33 @@ jobs:
           architecture: x64
       - uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: x64
+          arch: ${{ matrix.msvc_arch }}
 
       - name: Generate JNI headers
         run: .\gradlew.bat compileJava --console=plain
 
       - name: Build native library
         env:
-          PLATFORM_DIR: Windows-amd64-64
+          TARGET_ARCH: ${{ matrix.arch }}
         run: .\scripts\build-native.ps1
 
       - name: Inspect
         run: |
-          $dll = "build/native-resources/native/Windows-amd64-64/lib/gplcompression.dll"
+          $dll = "build/native-resources/native/${{ matrix.platform }}/lib/gplcompression.dll"
           dumpbin /dependents $dll
+          $headers = dumpbin /headers $dll
+          $headers | Select-String "machine"
+          if (-not ($headers -match "${{ matrix.machine }}")) {
+            throw "Expected machine '${{ matrix.machine }}' not found in DLL headers"
+          }
 
       - name: Smoke test
+        if: matrix.smoke
         run: .\gradlew.bat smokeTest --console=plain
 
       - uses: actions/upload-artifact@v4
         with:
-          name: native-Windows-amd64-64
+          name: native-${{ matrix.platform }}
           path: build/native-resources
           if-no-files-found: error
 
@@ -123,7 +218,7 @@ jobs:
   # Assembles the single multi-platform JAR from every platform's native
   # artifact, then publishes it to a GitHub Release on tag pushes.
   package:
-    needs: [native, native-windows, test]
+    needs: [native, cross, native-windows, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
